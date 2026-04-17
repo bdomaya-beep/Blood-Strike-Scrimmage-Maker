@@ -1,0 +1,213 @@
+Create a full-stack web application called "Blood Strike Scrim Hub" designed for organizing and managing competitive scrimmages for the game Blood Strike.
+
+CORE IDEA:
+A competitive platform where team captains register teams, join scrims, track performance, and follow structured match schedules with rules, penalties, and rankings.
+
+-----------------------------------
+👤 USER SYSTEM
+-----------------------------------
+- User registration/login
+- Profile includes:
+  - Username (IGN)
+  - Blood Strike ID
+  - Role (Player / Team Captain / Admin)
+- Only Team Captains can register teams into scrims
+
+-----------------------------------
+👥 TEAM / CLAN SYSTEM
+-----------------------------------
+- Team Captain can:
+  - Create a team (name, logo, description)
+  - Invite registered users
+- Members must:
+  - Be registered users
+  - Accept invites before joining
+- Teams include:
+  - Captain
+  - Members list
+  - Team stats
+
+-----------------------------------
+⚔️ SCRIMMAGE SYSTEM
+-----------------------------------
+- Scrims are created by Admin or Scrim Manager
+- Team Captains can register their teams
+
+Each scrim includes:
+- Scrim Name
+- Date & Time
+- Max Teams
+- Bracket Type:
+  - Low Bracket
+  - High Bracket
+- Status (Open, Ongoing, Finished)
+
+Visibility:
+- Only registered teams are visible to other captains
+
+-----------------------------------
+🧠 SCRIM MANAGER SYSTEM (IMPORTANT)
+-----------------------------------
+- Admin/Scrim Manager can:
+  - Create multiple scrims at once
+  - Set full schedule in advance
+  - Assign:
+    - Maps
+    - Rounds
+    - Break times
+    - Rules
+    - Bracket category
+
+- Schedule must be visible to all users
+
+-----------------------------------
+🗺️ MATCH STRUCTURE SYSTEM
+-----------------------------------
+Each scrim follows:
+
+- Multiple Matches
+- Each Match has:
+  - 3 Maps
+- Each Map has:
+  - 3 Rounds
+
+-----------------------------------
+⏱️ ROUND & BREAK (FLY TIME SYSTEM)
+-----------------------------------
+- Display "Fly Time" (break time between rounds/matches)
+
+Include:
+- Countdown timer between rounds
+- Example:
+  - Round ends → 2–5 min break → next round starts
+- Players can view:
+  - Next match start time
+  - Remaining break time
+
+-----------------------------------
+📊 SCOREBOARD SYSTEM
+-----------------------------------
+Track per team:
+- Kills
+- Placement
+- Violations
+
+Scoring:
+- Kill = +points
+- Placement = +points
+- Violation = -points deduction
+
+Auto-calculate:
+- Total score
+- Rankings (live leaderboard)
+
+-----------------------------------
+🚫 VIOLATION & BAN SYSTEM
+-----------------------------------
+Violations include:
+- No-show (automatic violation)
+- Rule breaking
+- Using banned weapons
+
+Penalty system:
+- Deduct points
+- Temporary ban (time-based)
+- Permanent ban (admin decision)
+
+No-show logic:
+- If team fails to join on time:
+  → Automatic violation
+  → Possible temporary ban
+
+-----------------------------------
+🔫 BAN & RULE SYSTEM
+-----------------------------------
+Each scrim has:
+- Weapon bans
+- Item bans
+- Custom rules
+
+Rules page:
+- Visible to all users
+- Must be accepted before joining
+
+-----------------------------------
+📢 ANNOUNCEMENT SYSTEM
+-----------------------------------
+- Dedicated Announcement Page
+
+Displays:
+- Upcoming tournaments
+- Events
+- Available scrimmages
+- Important updates
+
+-----------------------------------
+🏆 LEADERBOARD SYSTEM
+-----------------------------------
+- Global rankings:
+  - Top teams
+  - Top players
+
+Based on:
+- Total scrim points
+- Wins
+- Kills
+
+-----------------------------------
+🛡️ ADMIN PANEL
+-----------------------------------
+Admins can:
+- Create/manage scrims
+- Set schedules
+- Manage violations
+- Ban players/teams
+- Update announcements
+
+-----------------------------------
+🎨 UI / UX DESIGN
+-----------------------------------
+Theme: Blood Strike-inspired
+
+- Dark UI (black/red)
+- Neon glow accents
+- Tactical / military / esports style
+- Clean dashboards
+
+Pages:
+- Home
+- Scrims
+- Teams
+- Leaderboard
+- Announcements
+- Profile
+- Admin Panel
+
+-----------------------------------
+⚙️ TECH STACK
+-----------------------------------
+Frontend:
+- React / Next.js
+
+Backend:
+- Node.js (Express) or Firebase
+
+Database:
+- MongoDB / Firestore
+
+Realtime:
+- WebSockets or Firebase realtime DB
+
+-----------------------------------
+📦 OUTPUT REQUIREMENTS
+-----------------------------------
+Provide:
+- Full database schema
+- API routes
+- UI wireframes
+- Core code for:
+  - Scrim creation
+  - Team registration
+  - Scoreboard logic
+  - Timer system (fly time)
+- Instructions to run project
