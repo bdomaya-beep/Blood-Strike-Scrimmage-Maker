@@ -17,7 +17,7 @@ const formSchema = z.object({
   username: z.string().min(3),
   password: z.string().min(6),
   bloodStrikeId: z.string().min(5),
-  role: z.enum(["player", "captain", "admin"]),
+  role: z.enum(["player", "captain", "team_manager", "admin"]),
 });
 
 export default function Register() {
@@ -110,6 +110,7 @@ export default function Register() {
                       <SelectContent>
                         <SelectItem value="player" className="font-mono uppercase text-xs">Player</SelectItem>
                         <SelectItem value="captain" className="font-mono uppercase text-xs">Squad Captain</SelectItem>
+                        <SelectItem value="team_manager" className="font-mono uppercase text-xs">Team Manager</SelectItem>
                         <SelectItem value="admin" className="font-mono uppercase text-xs">Command Admin</SelectItem>
                       </SelectContent>
                     </Select>

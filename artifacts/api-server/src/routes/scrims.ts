@@ -38,13 +38,21 @@ async function buildScrim(s: typeof scrimsTable.$inferSelect) {
     itemBans: s.itemBans ?? [],
     rules: s.rules ?? null,
     createdByUsername: creator[0]?.username ?? null,
+    approvedByUsername: s.approvedBy
+      ? (await db.select().from(usersTable).where(eq(usersTable.id, s.approvedBy)).limit(1))[0]?.username ?? null
+      : null,
+    approvedAt: s.approvedAt ? s.approvedAt.toISOString() : null,
     registeredTeams: regCount[0]?.count ?? 0,
     createdAt: s.createdAt.toISOString(),
   };
 }
 
 router.get("/scrims", async (req, res): Promise<void> => {
-  const scrims = await db.select().from(scrimsTable).orderBy(scrimsTable.scheduledAt);
+  const scrims = await db
+    .select()
+    .from(scrimsTable)
+    .where(eq(scrimsTable.status, "open"))
+    .orderBy(scrimsTable.scheduledAt);
   const mapped = await Promise.all(scrims.map(buildScrim));
   res.json(ListScrimsResponse.parse(mapped));
 });
@@ -61,6 +69,7 @@ router.post("/scrims", async (req, res): Promise<void> => {
     scheduledAt: new Date(parsed.data.scheduledAt),
     maxTeams: parsed.data.maxTeams,
     bracketType: parsed.data.bracketType,
+    status: "open",
     maps: parsed.data.maps ?? [],
     totalRounds: parsed.data.totalRounds,
     flyTimeSeconds: parsed.data.flyTimeSeconds,
@@ -68,6 +77,8 @@ router.post("/scrims", async (req, res): Promise<void> => {
     itemBans: parsed.data.itemBans ?? [],
     rules: parsed.data.rules,
     createdBy: parsed.data.createdBy,
+    approvedBy: null,
+    approvedAt: null,
   }).returning();
 
   const built = await buildScrim(scrim);

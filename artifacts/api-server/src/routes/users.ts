@@ -16,6 +16,7 @@ import {
 import crypto from "crypto";
 
 const router: IRouter = Router();
+let adminLock = false;
 
 function hashPassword(password: string): string {
   return crypto.createHash("sha256").update(password + "blood-strike-salt").digest("hex");
@@ -45,6 +46,15 @@ router.post("/users", async (req, res): Promise<void> => {
     return;
   }
   const { username, password, bloodStrikeId, role } = parsed.data;
+
+  if (role === "admin") {
+    const existingAdmin = await db.select().from(usersTable).where(eq(usersTable.role, "admin"));
+    if (existingAdmin.length > 0 || adminLock) {
+      res.status(400).json({ error: "Only one admin account is allowed" });
+      return;
+    }
+    adminLock = true;
+  }
 
   const existing = await db.select().from(usersTable).where(eq(usersTable.username, username));
   if (existing.length > 0) {

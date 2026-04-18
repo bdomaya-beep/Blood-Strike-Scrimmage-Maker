@@ -18,6 +18,8 @@ export const scrimsTable = pgTable("scrims", {
   itemBans: text("item_bans").array().notNull().default([]),
   rules: text("rules"),
   createdBy: integer("created_by").notNull().references(() => usersTable.id),
+  approvedBy: integer("approved_by").references(() => usersTable.id),
+  approvedAt: timestamp("approved_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

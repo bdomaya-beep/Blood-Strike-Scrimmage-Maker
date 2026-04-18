@@ -7,7 +7,7 @@ export const usersTable = pgTable("users", {
   username: text("username").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
   bloodStrikeId: text("blood_strike_id").notNull(),
-  role: text("role", { enum: ["player", "captain", "admin"] }).notNull().default("player"),
+  role: text("role", { enum: ["player", "captain", "team_manager", "admin"] }).notNull().default("player"),
   isBanned: boolean("is_banned").notNull().default(false),
   banExpiresAt: timestamp("ban_expires_at", { withTimezone: true }),
   totalKills: integer("total_kills").notNull().default(0),

@@ -143,6 +143,15 @@ export default function Admin() {
     });
   };
 
+  const handleApproveScrim = (id: number) => {
+    updateScrim.mutate({ id, data: { status: "open" } }, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getListScrimsQueryKey() });
+        toast({ title: "Scrim Approved" });
+      }
+    });
+  };
+
   const handleResolveViolation = (id: number) => {
     updateViolation.mutate({ id, data: { status: 'resolved' } }, {
       onSuccess: () => {
@@ -245,7 +254,8 @@ export default function Admin() {
               <TableHeader>
                 <TableRow className="border-border hover:bg-transparent bg-muted/30">
                   <TableHead className="font-mono uppercase text-xs tracking-widest">Operation</TableHead>
-                  <TableHead className="font-mono uppercase text-xs tracking-widest">Status</TableHead>
+                    <TableHead className="font-mono uppercase text-xs tracking-widest">Approval</TableHead>
+                    <TableHead className="font-mono uppercase text-xs tracking-widest">Status</TableHead>
                   <TableHead className="font-mono uppercase text-xs tracking-widest">Schedule</TableHead>
                   <TableHead className="font-mono uppercase text-xs tracking-widest text-right">Actions</TableHead>
                 </TableRow>
@@ -255,6 +265,11 @@ export default function Admin() {
                   <TableRow key={scrim.id} className="border-border">
                     <TableCell className="font-bold">{scrim.name}</TableCell>
                     <TableCell>
+                      <Badge variant={scrim.status === 'open' ? 'default' : 'outline'} className="font-mono uppercase text-[10px]">
+                        {scrim.status === 'open' ? 'Approved' : 'Pending'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
                       <Badge variant={scrim.status === 'open' ? 'default' : scrim.status === 'ongoing' ? 'secondary' : 'outline'} className="font-mono uppercase text-[10px]">
                         {scrim.status}
                       </Badge>
@@ -263,6 +278,9 @@ export default function Admin() {
                     <TableCell className="text-right space-x-2">
                       {scrim.status === 'open' && (
                         <Button size="sm" variant="secondary" className="h-7 text-[10px] font-mono uppercase" onClick={() => handleUpdateScrimStatus(scrim.id, 'ongoing')}>Start</Button>
+                      )}
+                      {scrim.status !== 'open' && (
+                        <Button size="sm" variant="outline" className="h-7 text-[10px] font-mono uppercase border-border" onClick={() => handleApproveScrim(scrim.id)}>Approve</Button>
                       )}
                       {scrim.status === 'ongoing' && (
                         <Button size="sm" variant="destructive" className="h-7 text-[10px] font-mono uppercase" onClick={() => handleUpdateScrimStatus(scrim.id, 'finished')}>Conclude</Button>

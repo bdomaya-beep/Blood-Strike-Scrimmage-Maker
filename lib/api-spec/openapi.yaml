@@ -845,7 +845,7 @@ components:
           type: string
         role:
           type: string
-          enum: [player, captain, admin]
+        enum: [player, captain, team_manager, admin]
         isBanned:
           type: boolean
         banExpiresAt:
@@ -881,7 +881,7 @@ components:
           type: string
         role:
           type: string
-          enum: [player, captain, admin]
+        enum: [player, captain, team_manager, admin]
       required:
         - username
         - password
@@ -908,7 +908,7 @@ components:
           type: string
         role:
           type: string
-          enum: [player, captain, admin]
+        enum: [player, captain, team_manager, admin]
         isBanned:
           type: boolean
         banExpiresAt:
@@ -1049,6 +1049,10 @@ components:
           type: ["string", "null"]
         createdByUsername:
           type: ["string", "null"]
+        approvedByUsername:
+          type: ["string", "null"]
+        approvedAt:
+          type: ["string", "null"]
         registeredTeams:
           type: integer
         createdAt:
@@ -1067,6 +1071,8 @@ components:
         - itemBans
         - rules
         - createdByUsername
+        - approvedByUsername
+        - approvedAt
         - registeredTeams
         - createdAt
 
