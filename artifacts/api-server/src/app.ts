@@ -2,9 +2,12 @@ import express, { type Express } from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import { type IncomingMessage, type ServerResponse } from "node:http";
-import { pinoHttp } from "pino-http";
+import { createRequire } from "node:module";
 import router from "./routes";
 import { logger } from "./lib/logger";
+
+const require = createRequire(import.meta.url);
+const pinoHttp = require("pino-http") as typeof import("pino-http").default;
 
 const app: Express = express();
 
