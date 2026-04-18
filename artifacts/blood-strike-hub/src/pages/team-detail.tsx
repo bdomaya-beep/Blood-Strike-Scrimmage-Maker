@@ -1,5 +1,16 @@
 import { useParams } from "wouter";
-import { useGetTeam, useGetTeamMembers, useListUsers, useGetCurrentUser, getGetTeamQueryKey, getGetTeamMembersQueryKey, getListTeamsQueryKey } from "@workspace/api-client-react";
+import {
+  useGetTeam,
+  useGetTeamMembers,
+  useListUsers,
+  useGetCurrentUser,
+  useInviteTeamMember,
+  useAcceptTeamInvite,
+  useRemoveTeamMember,
+  getGetTeamQueryKey,
+  getGetTeamMembersQueryKey,
+  getListTeamsQueryKey,
+} from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ShieldAlert, Users, Crosshair, Award, UserPlus, Trash2, Star, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -10,36 +21,10 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-const BASE_URL = (import.meta.env.BASE_URL ?? "/").replace(/\/$/, "");
-
-async function addMember(teamId: number, userId: number) {
-  const res = await fetch(`${BASE_URL}/api/teams/${teamId}/members`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
-    body: JSON.stringify({ userId }),
-  });
-  if (!res.ok) throw new Error((await res.json()).error ?? "Failed to add member");
-}
-
-async function removeMember(teamId: number, userId: number) {
-  const res = await fetch(`${BASE_URL}/api/teams/${teamId}/members/${userId}`, {
-    method: "DELETE",
-    credentials: "include",
-  });
-  if (!res.ok) throw new Error("Failed to remove member");
-}
-
-async function acceptMember(teamId: number, userId: number) {
-  const res = await fetch(`${BASE_URL}/api/teams/${teamId}/members/${userId}/accept`, {
-    method: "POST",
-    credentials: "include",
-  });
-  if (!res.ok) throw new Error("Failed to accept member");
-}
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
 
 async function setCaptain(teamId: number, userId: number) {
-  const res = await fetch(`${BASE_URL}/api/teams/${teamId}/captain`, {
+  const res = await fetch(`${API_BASE_URL}/api/teams/${teamId}/captain`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
@@ -50,14 +35,18 @@ async function setCaptain(teamId: number, userId: number) {
 
 export default function TeamDetail() {
   const { id } = useParams<{ id: string }>();
-  const teamId = parseInt(id);
+  const teamId = Number.parseInt(id ?? "", 10);
+  const hasValidTeamId = Number.isFinite(teamId);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: team, isLoading } = useGetTeam(teamId, { query: { enabled: !!teamId, queryKey: getGetTeamQueryKey(teamId) } });
-  const { data: members, refetch: refetchMembers } = useGetTeamMembers(teamId, { query: { enabled: !!teamId, queryKey: getGetTeamMembersQueryKey(teamId) } });
+  const { data: team, isLoading } = useGetTeam(teamId, { query: { enabled: hasValidTeamId, queryKey: getGetTeamQueryKey(teamId) } });
+  const { data: members, refetch: refetchMembers } = useGetTeamMembers(teamId, { query: { enabled: hasValidTeamId, queryKey: getGetTeamMembersQueryKey(teamId) } });
   const { data: user } = useGetCurrentUser();
   const { data: allUsers } = useListUsers({ query: { enabled: user?.role === 'team_manager' || user?.role === 'admin' } });
+  const inviteTeamMember = useInviteTeamMember();
+  const acceptTeamInvite = useAcceptTeamInvite();
+  const removeTeamMember = useRemoveTeamMember();
 
   const [addMemberOpen, setAddMemberOpen] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string>("");
@@ -74,13 +63,13 @@ export default function TeamDetail() {
     if (!selectedUserId) return;
     setAddingMember(true);
     try {
-      await addMember(teamId, parseInt(selectedUserId));
+      await inviteTeamMember.mutateAsync({ id: teamId, data: { userId: Number.parseInt(selectedUserId, 10) } });
       toast({ title: "Member Invited", description: "Invitation sent successfully." });
       refetchMembers();
       setAddMemberOpen(false);
       setSelectedUserId("");
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Error", description: err.message });
+      toast({ variant: "destructive", title: "Error", description: err?.message ?? "Could not invite member." });
     } finally {
       setAddingMember(false);
     }
@@ -88,7 +77,7 @@ export default function TeamDetail() {
 
   const handleRemoveMember = async (userId: number) => {
     try {
-      await removeMember(teamId, userId);
+      await removeTeamMember.mutateAsync({ id: teamId, userId });
       toast({ title: "Member Removed" });
       refetchMembers();
       queryClient.invalidateQueries({ queryKey: getGetTeamQueryKey(teamId) });
@@ -99,7 +88,7 @@ export default function TeamDetail() {
 
   const handleAcceptMember = async (userId: number) => {
     try {
-      await acceptMember(teamId, userId);
+      await acceptTeamInvite.mutateAsync({ id: teamId, userId });
       toast({ title: "Member Accepted" });
       refetchMembers();
     } catch {
@@ -125,6 +114,7 @@ export default function TeamDetail() {
     u.role !== 'admin'
   ) ?? [];
 
+  if (!hasValidTeamId) return <div>Team not found</div>;
   if (isLoading) return <div className="animate-pulse h-64 bg-card/50 rounded-xl"></div>;
   if (!team) return <div>Team not found</div>;
 

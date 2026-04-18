@@ -15,6 +15,7 @@ import {
   GetScrimRegistrationsParams,
   GetScrimRegistrationsResponse,
 } from "@workspace/api-zod";
+import { requireAdmin } from "./_auth";
 const router: IRouter = Router();
 
 async function buildScrim(s: typeof scrimsTable.$inferSelect) {
@@ -56,6 +57,9 @@ router.get("/scrims", async (req, res): Promise<void> => {
 });
 
 router.post("/scrims", async (req, res): Promise<void> => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+
   const parsed = CreateScrimBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -101,6 +105,9 @@ router.get("/scrims/:id", async (req, res): Promise<void> => {
 });
 
 router.patch("/scrims/:id", async (req, res): Promise<void> => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+
   const params = UpdateScrimParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -137,6 +144,9 @@ router.patch("/scrims/:id", async (req, res): Promise<void> => {
 });
 
 router.delete("/scrims/:id", async (req, res): Promise<void> => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+
   const params = DeleteScrimParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });

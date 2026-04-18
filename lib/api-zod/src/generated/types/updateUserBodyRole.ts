@@ -12,5 +12,6 @@ export type UpdateUserBodyRole =
 export const UpdateUserBodyRole = {
   player: "player",
   captain: "captain",
+  team_manager: "team_manager",
   admin: "admin",
 } as const;

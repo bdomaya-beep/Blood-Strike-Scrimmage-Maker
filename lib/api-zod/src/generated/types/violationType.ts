@@ -12,5 +12,6 @@ export const ViolationType = {
   no_show: "no_show",
   rule_breaking: "rule_breaking",
   banned_weapon: "banned_weapon",
+  account_mismatch: "account_mismatch",
   other: "other",
 } as const;

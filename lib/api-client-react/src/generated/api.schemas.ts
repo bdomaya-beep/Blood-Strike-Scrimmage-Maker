@@ -14,6 +14,7 @@ export type UserRole = (typeof UserRole)[keyof typeof UserRole];
 export const UserRole = {
   player: "player",
   captain: "captain",
+  team_manager: "team_manager",
   admin: "admin",
 } as const;
 
@@ -37,6 +38,7 @@ export type CreateUserBodyRole =
 export const CreateUserBodyRole = {
   player: "player",
   captain: "captain",
+  team_manager: "team_manager",
   admin: "admin",
 } as const;
 
@@ -58,6 +60,7 @@ export type UpdateUserBodyRole =
 export const UpdateUserBodyRole = {
   player: "player",
   captain: "captain",
+  team_manager: "team_manager",
   admin: "admin",
 } as const;
 
@@ -136,6 +139,7 @@ export const ScrimBracketType = {
 export type ScrimStatus = (typeof ScrimStatus)[keyof typeof ScrimStatus];
 
 export const ScrimStatus = {
+  pending: "pending",
   open: "open",
   ongoing: "ongoing",
   finished: "finished",
@@ -157,6 +161,10 @@ export interface Scrim {
   rules: string | null;
   /** @nullable */
   createdByUsername: string | null;
+  /** @nullable */
+  approvedByUsername: string | null;
+  /** @nullable */
+  approvedAt: string | null;
   registeredTeams: number;
   createdAt: string;
 }
@@ -195,6 +203,7 @@ export type UpdateScrimBodyStatus =
   (typeof UpdateScrimBodyStatus)[keyof typeof UpdateScrimBodyStatus];
 
 export const UpdateScrimBodyStatus = {
+  pending: "pending",
   open: "open",
   ongoing: "ongoing",
   finished: "finished",
@@ -329,6 +338,7 @@ export const ViolationType = {
   no_show: "no_show",
   rule_breaking: "rule_breaking",
   banned_weapon: "banned_weapon",
+  account_mismatch: "account_mismatch",
   other: "other",
 } as const;
 
@@ -365,6 +375,7 @@ export const CreateViolationBodyType = {
   no_show: "no_show",
   rule_breaking: "rule_breaking",
   banned_weapon: "banned_weapon",
+  account_mismatch: "account_mismatch",
   other: "other",
 } as const;
 

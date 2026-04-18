@@ -32,17 +32,26 @@ export default function Login() {
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    loginUser.mutate({ data: values }, {
-      onSuccess: (user) => {
-        localStorage.setItem("userId", user.id.toString());
-        queryClient.invalidateQueries({ queryKey: getGetCurrentUserQueryKey() });
-        toast({ title: "Access Granted", description: "Welcome back, Operator." });
-        setLocation("/");
+    loginUser.mutate(
+      { data: values },
+      {
+        onSuccess: (user) => {
+          localStorage.setItem("userId", user.id.toString());
+          queryClient.invalidateQueries({ queryKey: getGetCurrentUserQueryKey() });
+          toast({ title: "Access Granted", description: "Welcome back, Operator." });
+          setLocation("/");
+        },
+        onError: (error: any) => {
+          const apiMessage =
+            error?.data?.error ??
+            error?.response?.data?.error ??
+            error?.message ??
+            "Invalid credentials.";
+
+          toast({ variant: "destructive", title: "Access Denied", description: apiMessage });
+        },
       },
-      onError: (error) => {
-        toast({ variant: "destructive", title: "Access Denied", description: "Invalid credentials." });
-      }
-    });
+    );
   }
 
   return (

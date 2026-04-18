@@ -9,6 +9,7 @@ import {
   UpdateAnnouncementResponse,
   DeleteAnnouncementParams,
 } from "@workspace/api-zod";
+import { requireAdmin } from "./_auth";
 
 const router: IRouter = Router();
 
@@ -37,6 +38,9 @@ router.get("/announcements", async (req, res): Promise<void> => {
 });
 
 router.post("/announcements", async (req, res): Promise<void> => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+
   const parsed = CreateAnnouncementBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -56,6 +60,9 @@ router.post("/announcements", async (req, res): Promise<void> => {
 });
 
 router.patch("/announcements/:id", async (req, res): Promise<void> => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+
   const params = UpdateAnnouncementParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -90,6 +97,9 @@ router.patch("/announcements/:id", async (req, res): Promise<void> => {
 });
 
 router.delete("/announcements/:id", async (req, res): Promise<void> => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+
   const params = DeleteAnnouncementParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });

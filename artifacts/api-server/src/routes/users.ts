@@ -14,9 +14,9 @@ import {
   LoginUserResponse,
 } from "@workspace/api-zod";
 import crypto from "crypto";
+import { requireAdmin } from "./_auth";
 
 const router: IRouter = Router();
-let adminLock = false;
 
 function hashPassword(password: string): string {
   return crypto.createHash("sha256").update(password + "blood-strike-salt").digest("hex");
@@ -40,116 +40,143 @@ router.get("/users", async (req, res): Promise<void> => {
 });
 
 router.post("/users", async (req, res): Promise<void> => {
-  const parsed = CreateUserBody.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.message });
-    return;
-  }
-  const { username, password, bloodStrikeId, role } = parsed.data;
-
-  if (role === "admin") {
-    const existingAdmin = await db.select().from(usersTable).where(eq(usersTable.role, "admin"));
-    if (existingAdmin.length > 0 || adminLock) {
-      res.status(400).json({ error: "Only one admin account is allowed" });
+  try {
+    const parsed = CreateUserBody.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.message });
       return;
     }
-    adminLock = true;
+    const { username, password, bloodStrikeId, role } = parsed.data;
+
+    if (role === "admin") {
+      const existingAdmin = await db.select().from(usersTable).where(eq(usersTable.role, "admin"));
+      if (existingAdmin.length > 0) {
+        res.status(400).json({ error: "Only one admin account is allowed" });
+        return;
+      }
+    }
+
+    const existing = await db.select().from(usersTable).where(eq(usersTable.username, username));
+    if (existing.length > 0) {
+      res.status(400).json({ error: "Username already taken" });
+      return;
+    }
+
+    const [user] = await db.insert(usersTable).values({
+      username,
+      passwordHash: hashPassword(password),
+      bloodStrikeId,
+      role,
+    }).returning();
+
+    const mapped = {
+      id: user.id,
+      username: user.username,
+      bloodStrikeId: user.bloodStrikeId,
+      role: user.role,
+      isBanned: user.isBanned,
+      banExpiresAt: user.banExpiresAt ? user.banExpiresAt.toISOString() : null,
+      totalKills: user.totalKills,
+      totalWins: user.totalWins,
+      totalPoints: user.totalPoints,
+      createdAt: user.createdAt.toISOString(),
+    };
+
+    req.log.info({ userId: user.id }, "User created");
+    res.status(201).json(GetUserResponse.parse(mapped));
+  } catch (error) {
+    req.log.error({ error }, "Failed to create user");
+    res.status(500).json({ error: "Failed to create user" });
   }
-
-  const existing = await db.select().from(usersTable).where(eq(usersTable.username, username));
-  if (existing.length > 0) {
-    res.status(400).json({ error: "Username already taken" });
-    return;
-  }
-
-  const [user] = await db.insert(usersTable).values({
-    username,
-    passwordHash: hashPassword(password),
-    bloodStrikeId,
-    role,
-  }).returning();
-
-  const mapped = {
-    id: user.id,
-    username: user.username,
-    bloodStrikeId: user.bloodStrikeId,
-    role: user.role,
-    isBanned: user.isBanned,
-    banExpiresAt: user.banExpiresAt ? user.banExpiresAt.toISOString() : null,
-    totalKills: user.totalKills,
-    totalWins: user.totalWins,
-    totalPoints: user.totalPoints,
-    createdAt: user.createdAt.toISOString(),
-  };
-
-  req.log.info({ userId: user.id }, "User created");
-  res.status(201).json(GetUserResponse.parse(mapped));
 });
 
 router.post("/users/login", async (req, res): Promise<void> => {
-  const parsed = LoginUserBody.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.message });
-    return;
+  try {
+    const parsed = LoginUserBody.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.message });
+      return;
+    }
+    const { username, password } = parsed.data;
+
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.username, username));
+    if (!user || user.passwordHash !== hashPassword(password)) {
+      res.status(401).json({ error: "Invalid credentials" });
+      return;
+    }
+
+    const now = Date.now();
+    const banExpiresAt = user.banExpiresAt ? new Date(user.banExpiresAt).getTime() : null;
+    const isBanActive = user.isBanned && (banExpiresAt === null || banExpiresAt > now);
+    if (isBanActive) {
+      res.status(403).json({ error: "Account is banned" });
+      return;
+    }
+
+    res.cookie("userId", String(user.id), {
+      httpOnly: true,
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      sameSite: "lax",
+    });
+
+    const mapped = {
+      id: user.id,
+      username: user.username,
+      bloodStrikeId: user.bloodStrikeId,
+      role: user.role,
+      isBanned: user.isBanned,
+      banExpiresAt: user.banExpiresAt ? user.banExpiresAt.toISOString() : null,
+      totalKills: user.totalKills,
+      totalWins: user.totalWins,
+      totalPoints: user.totalPoints,
+      createdAt: user.createdAt.toISOString(),
+    };
+
+    res.json(LoginUserResponse.parse(mapped));
+  } catch (error) {
+    req.log.error({ error }, "Login failed");
+    res.status(500).json({ error: "Failed to login" });
   }
-  const { username, password } = parsed.data;
-
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.username, username));
-  if (!user || user.passwordHash !== hashPassword(password)) {
-    res.status(401).json({ error: "Invalid credentials" });
-    return;
-  }
-
-  res.cookie("userId", String(user.id), {
-    httpOnly: true,
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-    sameSite: "lax",
-  });
-
-  const mapped = {
-    id: user.id,
-    username: user.username,
-    bloodStrikeId: user.bloodStrikeId,
-    role: user.role,
-    isBanned: user.isBanned,
-    banExpiresAt: user.banExpiresAt ? user.banExpiresAt.toISOString() : null,
-    totalKills: user.totalKills,
-    totalWins: user.totalWins,
-    totalPoints: user.totalPoints,
-    createdAt: user.createdAt.toISOString(),
-  };
-
-  res.json(LoginUserResponse.parse(mapped));
 });
 
 router.get("/users/me", async (req, res): Promise<void> => {
-  const userId = req.cookies?.userId;
-  if (!userId) {
-    res.status(401).json({ error: "Not authenticated" });
-    return;
+  try {
+    const userId = req.cookies?.userId;
+    if (!userId) {
+      res.status(401).json({ error: "Not authenticated" });
+      return;
+    }
+
+    const id = parseInt(userId, 10);
+    if (!Number.isFinite(id)) {
+      res.status(401).json({ error: "Not authenticated" });
+      return;
+    }
+
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.id, id));
+    if (!user) {
+      res.status(401).json({ error: "Not authenticated" });
+      return;
+    }
+
+    const mapped = {
+      id: user.id,
+      username: user.username,
+      bloodStrikeId: user.bloodStrikeId,
+      role: user.role,
+      isBanned: user.isBanned,
+      banExpiresAt: user.banExpiresAt ? user.banExpiresAt.toISOString() : null,
+      totalKills: user.totalKills,
+      totalWins: user.totalWins,
+      totalPoints: user.totalPoints,
+      createdAt: user.createdAt.toISOString(),
+    };
+
+    res.json(GetCurrentUserResponse.parse(mapped));
+  } catch (error) {
+    req.log.error({ error }, "Failed to get current user");
+    res.status(500).json({ error: "Failed to get current user" });
   }
-
-  const id = parseInt(userId, 10);
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, id));
-  if (!user) {
-    res.status(401).json({ error: "Not authenticated" });
-    return;
-  }
-
-  const mapped = {
-    id: user.id,
-    username: user.username,
-    bloodStrikeId: user.bloodStrikeId,
-    role: user.role,
-    isBanned: user.isBanned,
-    banExpiresAt: user.banExpiresAt ? user.banExpiresAt.toISOString() : null,
-    totalKills: user.totalKills,
-    totalWins: user.totalWins,
-    totalPoints: user.totalPoints,
-    createdAt: user.createdAt.toISOString(),
-  };
-
-  res.json(GetCurrentUserResponse.parse(mapped));
 });
 
 router.post("/users/logout", async (req, res): Promise<void> => {
@@ -187,6 +214,9 @@ router.get("/users/:id", async (req, res): Promise<void> => {
 });
 
 router.patch("/users/:id", async (req, res): Promise<void> => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+
   const params = UpdateUserParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });

@@ -8,6 +8,7 @@ import {
   UpdateViolationBody,
   UpdateViolationResponse,
 } from "@workspace/api-zod";
+import { requireAdmin } from "./_auth";
 
 const router: IRouter = Router();
 
@@ -36,6 +37,9 @@ router.get("/violations", async (req, res): Promise<void> => {
 });
 
 router.post("/violations", async (req, res): Promise<void> => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+
   const parsed = CreateViolationBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -64,6 +68,9 @@ router.post("/violations", async (req, res): Promise<void> => {
 });
 
 router.patch("/violations/:id", async (req, res): Promise<void> => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+
   const params = UpdateViolationParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });

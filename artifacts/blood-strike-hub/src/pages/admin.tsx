@@ -34,11 +34,11 @@ import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 
-const BASE_URL = (import.meta.env.BASE_URL ?? "/").replace(/\/$/, "");
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
 const ALL_SCRIMS_KEY = ["scrims", "all"];
 
 async function fetchAllScrims() {
-  const res = await fetch(`${BASE_URL}/api/scrims?all=true`, { credentials: "include" });
+  const res = await fetch(`${API_BASE_URL}/api/scrims?all=true`, { credentials: "include" });
   if (!res.ok) throw new Error("Failed to fetch scrims");
   return res.json();
 }
@@ -203,7 +203,8 @@ export default function Admin() {
     });
   };
 
-  const pendingCount = (allScrims as any[])?.filter((s: any) => s.status === 'pending').length ?? 0;
+  const safeAllScrims = Array.isArray(allScrims) ? allScrims : [];
+  const pendingCount = safeAllScrims.filter((s: any) => s.status === 'pending').length;
 
   return (
     <div className="space-y-6">
@@ -298,7 +299,7 @@ export default function Admin() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(allScrims as any[])?.map((scrim: any) => (
+                {safeAllScrims.map((scrim: any) => (
                   <TableRow key={scrim.id} className={`border-border ${scrim.status === 'pending' ? 'bg-amber-500/5' : ''}`}>
                     <TableCell className="font-bold">{scrim.name}</TableCell>
                     <TableCell className="font-mono text-xs text-muted-foreground">{scrim.createdByUsername || "System"}</TableCell>

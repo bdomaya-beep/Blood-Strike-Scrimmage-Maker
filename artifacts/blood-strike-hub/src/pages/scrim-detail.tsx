@@ -25,7 +25,7 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { useQueryClient } from "@tanstack/react-query";
 
-const BASE_URL = (import.meta.env.BASE_URL ?? "/").replace(/\/$/, "");
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
 
 function CountdownTimer({ seconds }: { seconds: number }) {
   const [timeLeft, setTimeLeft] = useState(seconds);
@@ -52,15 +52,16 @@ type LineupPlayer = {
 
 export default function ScrimDetail() {
   const { id } = useParams<{ id: string }>();
-  const scrimId = parseInt(id);
+  const scrimId = Number.parseInt(id ?? "", 10);
+  const hasValidScrimId = Number.isFinite(scrimId);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const { data: user } = useGetCurrentUser();
-  const { data: scrim, isLoading: scrimLoading } = useGetScrim(scrimId, { query: { enabled: !!scrimId, queryKey: getGetScrimQueryKey(scrimId) } });
-  const { data: matches } = useGetScrimMatches(scrimId, { query: { enabled: !!scrimId } });
-  const { data: registrations, refetch: refetchRegistrations } = useGetScrimRegistrations(scrimId, { query: { enabled: !!scrimId, queryKey: getGetScrimRegistrationsQueryKey(scrimId) } });
-  const { data: scoreboard } = useGetScrimScoreboard(scrimId, { query: { enabled: !!scrimId } });
+  const { data: scrim, isLoading: scrimLoading } = useGetScrim(scrimId, { query: { enabled: hasValidScrimId, queryKey: getGetScrimQueryKey(scrimId) } });
+  const { data: matches } = useGetScrimMatches(scrimId, { query: { enabled: hasValidScrimId } });
+  const { data: registrations, refetch: refetchRegistrations } = useGetScrimRegistrations(scrimId, { query: { enabled: hasValidScrimId, queryKey: getGetScrimRegistrationsQueryKey(scrimId) } });
+  const { data: scoreboard } = useGetScrimScoreboard(scrimId, { query: { enabled: hasValidScrimId } });
   const { data: allTeams } = useListTeams({ query: { enabled: user?.role === 'captain' } });
   
   const registerTeam = useRegisterTeamToScrim();
@@ -83,7 +84,7 @@ export default function ScrimDetail() {
 
   useEffect(() => {
     if (captainTeam && scrimId) {
-      fetch(`${BASE_URL}/api/scrims/${scrimId}/lineups?teamId=${captainTeam.id}`, { credentials: "include" })
+      fetch(`${API_BASE_URL}/api/scrims/${scrimId}/lineups?teamId=${captainTeam.id}`, { credentials: "include" })
         .then(r => r.ok ? r.json() : [])
         .then(data => setLineupData(data))
         .catch(() => {});
@@ -123,7 +124,7 @@ export default function ScrimDetail() {
 
     setSubmitting(true);
     try {
-      const lineupRes = await fetch(`${BASE_URL}/api/scrims/${scrimId}/lineups`, {
+      const lineupRes = await fetch(`${API_BASE_URL}/api/scrims/${scrimId}/lineups`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -145,7 +146,7 @@ export default function ScrimDetail() {
       refetchRegistrations();
       queryClient.invalidateQueries({ queryKey: getGetScrimQueryKey(scrimId) });
 
-      const updated = await fetch(`${BASE_URL}/api/scrims/${scrimId}/lineups?teamId=${captainTeam.id}`, { credentials: "include" });
+      const updated = await fetch(`${API_BASE_URL}/api/scrims/${scrimId}/lineups?teamId=${captainTeam.id}`, { credentials: "include" });
       setLineupData(updated.ok ? await updated.json() : []);
     } catch (err: any) {
       toast({ variant: "destructive", title: "Error", description: err.message ?? "Could not deploy squad." });
@@ -156,6 +157,7 @@ export default function ScrimDetail() {
 
   const activeMatch = matches?.find(m => m.status === 'active');
 
+  if (!hasValidScrimId) return <div>Scrim not found</div>;
   if (scrimLoading) return <div className="animate-pulse h-96 bg-card/50 rounded-xl border border-border"></div>;
   if (!scrim) return <div>Scrim not found</div>;
 

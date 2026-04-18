@@ -9,6 +9,7 @@
 export type ScrimStatus = (typeof ScrimStatus)[keyof typeof ScrimStatus];
 
 export const ScrimStatus = {
+  pending: "pending",
   open: "open",
   ongoing: "ongoing",
   finished: "finished",

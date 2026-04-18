@@ -48,7 +48,7 @@ export default function Leaderboard() {
               <TableBody>
                 {teamsLoading ? (
                   <TableRow><TableCell colSpan={6} className="text-center py-10 font-mono text-muted-foreground">Gathering intel...</TableCell></TableRow>
-                ) : teams?.map((team) => (
+                ) : Array.isArray(teams) ? teams.map((team) => (
                   <TableRow key={team.teamId} className="border-border hover:bg-muted/20 transition-colors">
                     <TableCell>{getRankBadge(team.rank)}</TableCell>
                     <TableCell className="font-bold text-base">{team.teamName}</TableCell>
@@ -57,7 +57,9 @@ export default function Leaderboard() {
                     <TableCell className="text-right font-mono">{team.totalKills}</TableCell>
                     <TableCell className="text-right font-mono font-bold text-lg text-primary">{team.totalPoints}</TableCell>
                   </TableRow>
-                ))}
+                )) : (
+                  <TableRow><TableCell colSpan={6} className="text-center py-10 font-mono text-muted-foreground">No data available</TableCell></TableRow>
+                )}
               </TableBody>
             </Table>
           </Card>
@@ -79,7 +81,7 @@ export default function Leaderboard() {
               <TableBody>
                 {playersLoading ? (
                   <TableRow><TableCell colSpan={6} className="text-center py-10 font-mono text-muted-foreground">Gathering intel...</TableCell></TableRow>
-                ) : players?.map((player) => (
+                ) : Array.isArray(players) ? players.map((player) => (
                   <TableRow key={player.userId} className="border-border hover:bg-muted/20 transition-colors">
                     <TableCell>{getRankBadge(player.rank)}</TableCell>
                     <TableCell>
@@ -97,7 +99,9 @@ export default function Leaderboard() {
                     <TableCell className="text-right font-mono">{player.totalKills}</TableCell>
                     <TableCell className="text-right font-mono font-bold text-lg text-primary">{player.totalPoints}</TableCell>
                   </TableRow>
-                ))}
+                )) : (
+                  <TableRow><TableCell colSpan={6} className="text-center py-10 font-mono text-muted-foreground">No data available</TableCell></TableRow>
+                )}
               </TableBody>
             </Table>
           </Card>

@@ -10,6 +10,7 @@ export type UpdateScrimBodyStatus =
   (typeof UpdateScrimBodyStatus)[keyof typeof UpdateScrimBodyStatus];
 
 export const UpdateScrimBodyStatus = {
+  pending: "pending",
   open: "open",
   ongoing: "ongoing",
   finished: "finished",

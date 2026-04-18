@@ -24,6 +24,10 @@ export interface Scrim {
   rules: string | null;
   /** @nullable */
   createdByUsername: string | null;
+  /** @nullable */
+  approvedByUsername: string | null;
+  /** @nullable */
+  approvedAt: string | null;
   registeredTeams: number;
   createdAt: string;
 }

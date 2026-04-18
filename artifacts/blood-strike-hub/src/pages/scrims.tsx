@@ -43,7 +43,7 @@ export default function ScrimsList() {
             <Card key={i} className="bg-card/50 border-border animate-pulse h-64"></Card>
           ))}
         </div>
-      ) : scrims?.length === 0 ? (
+      ) : !Array.isArray(scrims) || scrims.length === 0 ? (
         <div className="text-center py-20 border border-dashed border-border rounded-lg bg-card/30">
           <ShieldAlert className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
           <h3 className="text-lg font-mono uppercase font-bold text-muted-foreground">No Active Scrims</h3>
@@ -51,7 +51,7 @@ export default function ScrimsList() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {scrims?.map((scrim) => (
+          {scrims.map((scrim) => (
             <Card key={scrim.id} className="bg-card border-border overflow-hidden group hover:border-primary/30 transition-colors flex flex-col">
               <div className="h-2 bg-gradient-to-r from-primary/50 to-transparent w-full"></div>
               <CardHeader className="pb-3">

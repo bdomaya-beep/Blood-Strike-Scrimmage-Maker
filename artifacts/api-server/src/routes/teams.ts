@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { db, teamsTable, teamMembersTable, usersTable } from "@workspace/db";
 import {
   ListTeamsResponse,
@@ -220,7 +220,7 @@ router.post("/teams/:id/members/:userId/accept", async (req, res): Promise<void>
   const [member] = await db
     .update(teamMembersTable)
     .set({ status: "accepted" })
-    .where(eq(teamMembersTable.userId, params.data.userId))
+    .where(and(eq(teamMembersTable.teamId, params.data.id), eq(teamMembersTable.userId, params.data.userId)))
     .returning();
 
   if (!member) {
@@ -252,7 +252,7 @@ router.delete("/teams/:id/members/:userId", async (req, res): Promise<void> => {
 
   await db
     .delete(teamMembersTable)
-    .where(eq(teamMembersTable.userId, params.data.userId));
+    .where(and(eq(teamMembersTable.teamId, params.data.id), eq(teamMembersTable.userId, params.data.userId)));
 
   res.sendStatus(204);
 });
