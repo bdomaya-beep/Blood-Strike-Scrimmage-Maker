@@ -10,7 +10,7 @@ export const violationsTable = pgTable("violations", {
   teamId: integer("team_id").notNull().references(() => teamsTable.id),
   userId: integer("user_id").references(() => usersTable.id),
   scrimId: integer("scrim_id").references(() => scrimsTable.id),
-  type: text("type", { enum: ["no_show", "rule_breaking", "banned_weapon", "other"] }).notNull(),
+  type: text("type", { enum: ["no_show", "rule_breaking", "banned_weapon", "account_mismatch", "other"] }).notNull(),
   description: text("description").notNull(),
   pointDeduction: integer("point_deduction").notNull().default(0),
   status: text("status", { enum: ["active", "resolved"] }).notNull().default("active"),

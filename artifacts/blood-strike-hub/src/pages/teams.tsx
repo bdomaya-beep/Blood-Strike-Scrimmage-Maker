@@ -30,7 +30,7 @@ export default function TeamsList() {
   const createTeam = useCreateTeam();
   const [, setLocation] = useLocation();
 
-  const isCaptain = user?.role === 'captain';
+  const canCreateTeam = user?.role === 'captain' || user?.role === 'team_manager';
 
   const form = useForm<z.infer<typeof createTeamSchema>>({
     resolver: zodResolver(createTeamSchema),
@@ -71,7 +71,7 @@ export default function TeamsList() {
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          {isCaptain && (
+          {canCreateTeam && (
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
                 <Button className="font-mono uppercase tracking-widest gap-2 shrink-0">
@@ -112,6 +112,9 @@ export default function TeamsList() {
                         </FormItem>
                       )}
                     />
+                    <p className="text-xs text-muted-foreground font-mono">
+                      {user?.role === 'team_manager' ? 'You will be set as manager. Assign a captain after creation.' : 'You will be set as squad captain.'}
+                    </p>
                     <div className="pt-4 flex justify-end">
                       <Button type="submit" className="font-mono uppercase tracking-widest" disabled={createTeam.isPending}>
                         Confirm Formation

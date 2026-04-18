@@ -117,6 +117,20 @@ router.patch("/teams/:id", async (req, res): Promise<void> => {
   res.json(UpdateTeamResponse.parse(built));
 });
 
+router.patch("/teams/:id/captain", async (req, res): Promise<void> => {
+  const teamId = parseInt(req.params.id);
+  if (isNaN(teamId)) { res.status(400).json({ error: "Invalid team id" }); return; }
+
+  const { captainId } = req.body;
+  if (typeof captainId !== "number") { res.status(400).json({ error: "captainId required" }); return; }
+
+  const [team] = await db.update(teamsTable).set({ captainId }).where(eq(teamsTable.id, teamId)).returning();
+  if (!team) { res.status(404).json({ error: "Team not found" }); return; }
+
+  const built = await buildTeam(team);
+  res.json(built);
+});
+
 router.delete("/teams/:id", async (req, res): Promise<void> => {
   const params = DeleteTeamParams.safeParse(req.params);
   if (!params.success) {

@@ -17,7 +17,7 @@ const formSchema = z.object({
   username: z.string().min(3),
   password: z.string().min(6),
   bloodStrikeId: z.string().min(5),
-  role: z.enum(["player", "captain", "team_manager", "admin"]),
+  role: z.enum(["player", "captain", "team_manager"]),
 });
 
 export default function Register() {
@@ -38,7 +38,7 @@ export default function Register() {
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    createUser.mutate({ data: values }, {
+    createUser.mutate({ data: { ...values, role: values.role as "player" | "captain" | "team_manager" | "admin" } }, {
       onSuccess: () => {
         loginUser.mutate({ data: { username: values.username, password: values.password } }, {
           onSuccess: (user) => {
@@ -49,7 +49,7 @@ export default function Register() {
           }
         });
       },
-      onError: (error) => {
+      onError: () => {
         toast({ variant: "destructive", title: "Registration Failed", description: "Could not create operator profile." });
       }
     });
@@ -87,9 +87,9 @@ export default function Register() {
                 name="bloodStrikeId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="uppercase text-xs font-mono tracking-widest text-muted-foreground">Blood Strike ID</FormLabel>
+                    <FormLabel className="uppercase text-xs font-mono tracking-widest text-muted-foreground">Blood Strike ID (UID)</FormLabel>
                     <FormControl>
-                      <Input placeholder="In-game ID" {...field} className="bg-background/50 font-mono" />
+                      <Input placeholder="Your in-game UID" {...field} className="bg-background/50 font-mono" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -111,7 +111,6 @@ export default function Register() {
                         <SelectItem value="player" className="font-mono uppercase text-xs">Player</SelectItem>
                         <SelectItem value="captain" className="font-mono uppercase text-xs">Squad Captain</SelectItem>
                         <SelectItem value="team_manager" className="font-mono uppercase text-xs">Team Manager</SelectItem>
-                        <SelectItem value="admin" className="font-mono uppercase text-xs">Command Admin</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />

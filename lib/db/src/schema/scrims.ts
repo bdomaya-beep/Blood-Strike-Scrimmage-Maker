@@ -10,7 +10,7 @@ export const scrimsTable = pgTable("scrims", {
   scheduledAt: timestamp("scheduled_at", { withTimezone: true }).notNull(),
   maxTeams: integer("max_teams").notNull().default(16),
   bracketType: text("bracket_type", { enum: ["low", "high"] }).notNull().default("low"),
-  status: text("status", { enum: ["open", "ongoing", "finished"] }).notNull().default("open"),
+  status: text("status", { enum: ["pending", "open", "ongoing", "finished"] }).notNull().default("pending"),
   maps: text("maps").array().notNull().default([]),
   totalRounds: integer("total_rounds").notNull().default(3),
   flyTimeSeconds: integer("fly_time_seconds").notNull().default(120),
@@ -31,7 +31,19 @@ export const scrimRegistrationsTable = pgTable("scrim_registrations", {
   registeredAt: timestamp("registered_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const scrimLineupsTable = pgTable("scrim_lineups", {
+  id: serial("id").primaryKey(),
+  scrimId: integer("scrim_id").notNull().references(() => scrimsTable.id),
+  teamId: integer("team_id").notNull().references(() => teamsTable.id),
+  userId: integer("user_id").references(() => usersTable.id),
+  ign: text("ign").notNull(),
+  uid: text("uid").notNull(),
+  designation: text("designation", { enum: ["main", "sub"] }).notNull().default("main"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const insertScrimSchema = createInsertSchema(scrimsTable).omit({ id: true, createdAt: true, updatedAt: true });
 export type InsertScrim = z.infer<typeof insertScrimSchema>;
 export type Scrim = typeof scrimsTable.$inferSelect;
 export type ScrimRegistration = typeof scrimRegistrationsTable.$inferSelect;
+export type ScrimLineup = typeof scrimLineupsTable.$inferSelect;

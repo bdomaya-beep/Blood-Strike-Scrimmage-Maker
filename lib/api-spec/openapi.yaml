@@ -1028,7 +1028,7 @@ components:
           enum: [low, high]
         status:
           type: string
-          enum: [open, ongoing, finished]
+          enum: [pending, open, ongoing, finished]
         maps:
           type: array
           items:
@@ -1132,7 +1132,7 @@ components:
           enum: [low, high]
         status:
           type: string
-          enum: [open, ongoing, finished]
+          enum: [pending, open, ongoing, finished]
         maps:
           type: array
           items:
@@ -1388,7 +1388,7 @@ components:
           type: ["integer", "null"]
         type:
           type: string
-          enum: [no_show, rule_breaking, banned_weapon, other]
+          enum: [no_show, rule_breaking, banned_weapon, account_mismatch, other]
         description:
           type: string
         pointDeduction:
@@ -1422,7 +1422,7 @@ components:
           type: integer
         type:
           type: string
-          enum: [no_show, rule_breaking, banned_weapon, other]
+          enum: [no_show, rule_breaking, banned_weapon, account_mismatch, other]
         description:
           type: string
         pointDeduction:
