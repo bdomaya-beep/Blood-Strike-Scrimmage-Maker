@@ -45,6 +45,11 @@ export function SiteNav() {
     router.push('/login');
   };
 
+  const navLinks = [
+    ...NAV_LINKS,
+    ...((user?.roles ?? []).includes('super_admin') ? [{ href: '/admin/roles', label: 'Admin Roles' }] : []),
+  ];
+
   return (
     <header className="sticky top-0 z-40 bg-surface-900/90 backdrop-blur-lg border-b border-white/10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
@@ -56,7 +61,7 @@ export function SiteNav() {
 
         {/* Desktop Nav */}
         <nav className="hidden md:flex items-center gap-1">
-          {NAV_LINKS.map((link) => (
+          {navLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
@@ -148,7 +153,7 @@ export function SiteNav() {
       {/* Mobile drawer */}
       {mobileOpen && (
         <nav className="md:hidden border-t border-white/10 px-4 py-4 space-y-1">
-          {NAV_LINKS.map((link) => (
+          {navLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}

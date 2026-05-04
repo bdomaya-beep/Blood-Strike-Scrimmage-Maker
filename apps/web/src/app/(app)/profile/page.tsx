@@ -13,6 +13,8 @@ export default function ProfilePage() {
   const { user, isAuthenticated, logout, fetchMe } = useAuthStore();
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [requestedRole, setRequestedRole] = useState('tournament_organizer');
+  const [requestingRole, setRequestingRole] = useState(false);
   const [formData, setFormData] = useState({
     displayName: user?.displayName || '',
     region: user?.region || '',
@@ -58,6 +60,18 @@ export default function ProfilePage() {
   const handleLogout = async () => {
     await logout();
     router.push('/login');
+  };
+
+  const handleRoleRequest = async () => {
+    try {
+      setRequestingRole(true);
+      await apiClient.post('/auth/roles/request', { roleCode: requestedRole });
+      alert('Role request submitted. Waiting for Super Admin approval.');
+    } catch (err: any) {
+      alert(err?.response?.data?.message || 'Failed to submit role request');
+    } finally {
+      setRequestingRole(false);
+    }
   };
 
   return (
@@ -170,6 +184,30 @@ export default function ProfilePage() {
         </GlassCard>
 
         {/* Danger Zone */}
+        {!user.roles.includes('super_admin') && (
+          <GlassCard className="p-6 mb-6">
+            <h3 className="font-orbitron text-white font-bold mb-4">Request Additional Role</h3>
+            <p className="text-white/60 text-sm mb-4">
+              Super Admin approval is required for organizer, clan leader, clan moderator, and spectator roles.
+            </p>
+            <div className="grid sm:grid-cols-[1fr_auto] gap-3">
+              <select
+                value={requestedRole}
+                onChange={(e) => setRequestedRole(e.target.value)}
+                className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:border-neon-red/50"
+              >
+                <option value="tournament_organizer">Tournament Organizer</option>
+                <option value="clan_leader">Clan Leader</option>
+                <option value="clan_moderator">Clan Moderator</option>
+                <option value="spectator">Spectator</option>
+              </select>
+              <Button onClick={handleRoleRequest} disabled={requestingRole} className="neon-button">
+                {requestingRole ? 'Submitting...' : 'Request Role'}
+              </Button>
+            </div>
+          </GlassCard>
+        )}
+
         <GlassCard className="p-6 border-red-500/20">
           <h3 className="font-orbitron text-white font-bold mb-4">Account Actions</h3>
           <Button
