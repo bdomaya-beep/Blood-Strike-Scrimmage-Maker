@@ -12,7 +12,9 @@ async function bootstrap() {
 
   const configService = app.get(ConfigService);
   const port = configService.get<number>('API_PORT', 3001);
-  const origin = configService.get<string>('WEB_BASE_URL', 'http://localhost:3000');
+  const rawOrigins = configService.get<string>('WEB_BASE_URL', 'http://localhost:3000');
+  const origins = rawOrigins.split(',').map((o) => o.trim()).filter(Boolean);
+  const origin = origins.length === 1 ? origins[0] : origins;
 
   app.setGlobalPrefix('api/v1');
 
