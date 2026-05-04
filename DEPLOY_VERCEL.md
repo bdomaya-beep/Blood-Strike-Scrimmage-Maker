@@ -10,7 +10,7 @@ This project is configured for Vercel using `vercel.json`.
 4. Keep **Root Directory** as repository root.
 
 Vercel will use:
-- Install Command: `npm ci`
+- Install Command: `npm install`
 - Build Command: `npm run build:vercel`
 - Output Directory: `artifacts/blood-strike-hub/dist/public`
 
