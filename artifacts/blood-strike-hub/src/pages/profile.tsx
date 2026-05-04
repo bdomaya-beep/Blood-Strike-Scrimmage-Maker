@@ -1,11 +1,12 @@
-import { useGetCurrentUser, useGetUser } from "@workspace/api-client-react";
+import { useGetCurrentUser, useGetUser, getGetUserQueryKey } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { User, Crosshair, Award, ShieldAlert, History } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 export default function Profile() {
   const { data: currentUser } = useGetCurrentUser();
-  const { data: user, isLoading } = useGetUser(currentUser?.id || 0, { query: { enabled: !!currentUser?.id } });
+  const userId = currentUser?.id ?? 0;
+  const { data: user, isLoading } = useGetUser(userId, { query: { enabled: !!currentUser?.id, queryKey: getGetUserQueryKey(userId) } });
 
   if (isLoading) return <div className="animate-pulse h-64 bg-card/50 rounded-xl"></div>;
   if (!user) return <div>Profile not found</div>;

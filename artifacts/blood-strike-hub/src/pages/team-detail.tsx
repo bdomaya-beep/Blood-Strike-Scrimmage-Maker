@@ -10,6 +10,7 @@ import {
   getGetTeamQueryKey,
   getGetTeamMembersQueryKey,
   getListTeamsQueryKey,
+  getListUsersQueryKey,
 } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ShieldAlert, Users, Crosshair, Award, UserPlus, Trash2, Star, Clock } from "lucide-react";
@@ -43,7 +44,7 @@ export default function TeamDetail() {
   const { data: team, isLoading } = useGetTeam(teamId, { query: { enabled: hasValidTeamId, queryKey: getGetTeamQueryKey(teamId) } });
   const { data: members, refetch: refetchMembers } = useGetTeamMembers(teamId, { query: { enabled: hasValidTeamId, queryKey: getGetTeamMembersQueryKey(teamId) } });
   const { data: user } = useGetCurrentUser();
-  const { data: allUsers } = useListUsers({ query: { enabled: user?.role === 'team_manager' || user?.role === 'admin' } });
+  const { data: allUsers } = useListUsers({ query: { enabled: user?.role === 'team_manager' || user?.role === 'admin', queryKey: getListUsersQueryKey() } });
   const inviteTeamMember = useInviteTeamMember();
   const acceptTeamInvite = useAcceptTeamInvite();
   const removeTeamMember = useRemoveTeamMember();

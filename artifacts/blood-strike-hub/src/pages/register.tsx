@@ -49,8 +49,13 @@ export default function Register() {
           }
         });
       },
-      onError: () => {
-        toast({ variant: "destructive", title: "Registration Failed", description: "Could not create operator profile." });
+      onError: (error: any) => {
+        const apiMessage =
+          error?.data?.error ??
+          error?.response?.data?.error ??
+          error?.message ??
+          "Could not create operator profile.";
+        toast({ variant: "destructive", title: "Registration Failed", description: apiMessage });
       }
     });
   }

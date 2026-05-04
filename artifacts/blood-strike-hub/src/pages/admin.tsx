@@ -204,6 +204,10 @@ export default function Admin() {
   };
 
   const safeAllScrims = Array.isArray(allScrims) ? allScrims : [];
+  const safeAnnouncements = Array.isArray(announcements) ? announcements : [];
+  const safeViolations = Array.isArray(violations) ? violations : [];
+  const safeUsers = Array.isArray(users) ? users : [];
+  const safeTeams = Array.isArray(teams) ? teams : [];
   const pendingCount = safeAllScrims.filter((s: any) => s.status === 'pending').length;
 
   return (
@@ -376,7 +380,7 @@ export default function Admin() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {announcements?.map(a => (
+                {safeAnnouncements.map(a => (
                   <TableRow key={a.id} className="border-border">
                     <TableCell className="font-bold flex items-center gap-2">
                       {a.isPinned && <Badge className="bg-primary text-primary-foreground text-[10px] uppercase font-mono px-1 py-0 h-4">Pinned</Badge>}
@@ -407,7 +411,7 @@ export default function Admin() {
                       <Select onValueChange={(v) => field.onChange(parseInt(v))} value={field.value ? String(field.value) : ""}>
                         <FormControl><SelectTrigger className="font-mono"><SelectValue placeholder="Select squad..." /></SelectTrigger></FormControl>
                         <SelectContent>
-                          {teams?.map(t => (
+                          {safeTeams.map(t => (
                             <SelectItem key={t.id} value={String(t.id)} className="font-mono">{t.name}</SelectItem>
                           ))}
                         </SelectContent>
@@ -452,7 +456,7 @@ export default function Admin() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {violations?.map(v => (
+                {safeViolations.map(v => (
                   <TableRow key={v.id} className="border-border">
                     <TableCell className="font-bold">{v.teamName || v.username || 'Unknown'}</TableCell>
                     <TableCell className="font-mono text-sm text-muted-foreground uppercase">{violationTypeLabel(v.type)}</TableCell>
@@ -487,7 +491,7 @@ export default function Admin() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {users?.map(u => (
+                {safeUsers.map(u => (
                   <TableRow key={u.id} className="border-border">
                     <TableCell className="font-bold flex items-center gap-2">
                       {u.username}

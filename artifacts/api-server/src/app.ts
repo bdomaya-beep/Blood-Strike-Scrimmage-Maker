@@ -8,6 +8,19 @@ import { logger } from "./lib/logger";
 
 const require = createRequire(import.meta.url);
 const pinoHttp = require("pino-http") as typeof import("pino-http").default;
+const sessionSecret = process.env.SESSION_SECRET?.trim();
+const isProduction = process.env.NODE_ENV === "production";
+const isDefaultSessionSecret = !sessionSecret || sessionSecret === "blood-strike-secret";
+
+if (isDefaultSessionSecret && isProduction) {
+  throw new Error("SESSION_SECRET must be set to a secure value in production.");
+}
+
+if (isDefaultSessionSecret && !isProduction) {
+  logger.warn(
+    "Using default SESSION_SECRET for local development. Set SESSION_SECRET in .env for safer local sessions.",
+  );
+}
 
 const app: Express = express();
 
@@ -33,7 +46,7 @@ app.use(
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser(process.env.SESSION_SECRET || "blood-strike-secret"));
+app.use(cookieParser(sessionSecret || "blood-strike-secret"));
 
 app.use("/api", router);
 

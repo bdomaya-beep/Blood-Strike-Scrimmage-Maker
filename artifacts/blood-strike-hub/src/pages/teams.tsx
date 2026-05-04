@@ -23,6 +23,7 @@ const createTeamSchema = z.object({
 export default function TeamsList() {
   const [search, setSearch] = useState("");
   const { data: teams, isLoading } = useListTeams();
+  const safeTeams = Array.isArray(teams) ? teams : [];
   const { data: user } = useGetCurrentUser();
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
@@ -49,7 +50,9 @@ export default function TeamsList() {
     });
   };
 
-  const filteredTeams = teams?.filter(t => t.name.toLowerCase().includes(search.toLowerCase())) || [];
+  const filteredTeams = safeTeams.filter((t) =>
+    t.name.toLowerCase().includes(search.toLowerCase()),
+  );
 
   return (
     <div className="space-y-6">

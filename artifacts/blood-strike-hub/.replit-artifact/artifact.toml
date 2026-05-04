@@ -15,10 +15,10 @@ paths = [ "/" ]
 localPort = 19712
 
 [services.development]
-run = "pnpm --filter @workspace/blood-strike-hub run dev"
+run = "npm -w @workspace/blood-strike-hub run dev"
 
 [services.production]
-build = [ "pnpm", "--filter", "@workspace/blood-strike-hub", "run", "build" ]
+build = [ "npm", "-w", "@workspace/blood-strike-hub", "run", "build" ]
 publicDir = "artifacts/blood-strike-hub/dist/public"
 serve = "static"
 

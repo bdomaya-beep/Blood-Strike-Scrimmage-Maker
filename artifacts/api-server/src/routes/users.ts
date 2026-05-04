@@ -84,7 +84,13 @@ router.post("/users", async (req, res): Promise<void> => {
 
     req.log.info({ userId: user.id }, "User created");
     res.status(201).json(GetUserResponse.parse(mapped));
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.cause?.code === "42P01") {
+      res.status(503).json({
+        error: "Database schema is not initialized. Run: npm -w @workspace/db run push",
+      });
+      return;
+    }
     req.log.error({ error }, "Failed to create user");
     res.status(500).json({ error: "Failed to create user" });
   }
@@ -133,7 +139,13 @@ router.post("/users/login", async (req, res): Promise<void> => {
     };
 
     res.json(LoginUserResponse.parse(mapped));
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.cause?.code === "42P01") {
+      res.status(503).json({
+        error: "Database schema is not initialized. Run: npm -w @workspace/db run push",
+      });
+      return;
+    }
     req.log.error({ error }, "Login failed");
     res.status(500).json({ error: "Failed to login" });
   }

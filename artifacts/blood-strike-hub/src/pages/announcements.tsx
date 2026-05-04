@@ -6,6 +6,7 @@ import { format } from "date-fns";
 
 export default function Announcements() {
   const { data: announcements, isLoading } = useListAnnouncements();
+  const announcementList = Array.isArray(announcements) ? announcements : [];
 
   const getCategoryIcon = (cat: string) => {
     switch (cat) {
@@ -27,8 +28,8 @@ export default function Announcements() {
     }
   };
 
-  const pinned = announcements?.filter(a => a.isPinned) || [];
-  const recent = announcements?.filter(a => !a.isPinned) || [];
+  const pinned = announcementList.filter((a) => a.isPinned);
+  const recent = announcementList.filter((a) => !a.isPinned);
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">

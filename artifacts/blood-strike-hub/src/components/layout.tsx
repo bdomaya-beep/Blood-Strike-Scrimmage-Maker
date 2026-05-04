@@ -6,7 +6,7 @@ import { Crosshair, ShieldAlert, Trophy, Users, Megaphone, LogOut, LogIn, User, 
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
-  const { data: user } = useGetCurrentUser({ query: { retry: false } });
+  const { data: user } = useGetCurrentUser({ query: { queryKey: getGetCurrentUserQueryKey(), retry: false } });
   const logout = useLogoutUser();
   const queryClient = useQueryClient();
 

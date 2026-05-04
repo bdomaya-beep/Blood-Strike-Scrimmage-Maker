@@ -78,6 +78,44 @@ function resolveUrl(input: RequestInfo | URL): string {
   return input.url;
 }
 
+function extractPathname(url: string): string {
+  try {
+    return new URL(url, "http://local").pathname;
+  } catch {
+    return url;
+  }
+}
+
+function maybeNormalizeListPayload(
+  value: unknown,
+  requestInfo: { method: string; url: string },
+): unknown {
+  if (requestInfo.method !== "GET") return value;
+  if (Array.isArray(value) || value == null || typeof value !== "object") return value;
+
+  const pathname = extractPathname(requestInfo.url);
+  const isListEndpoint =
+    pathname === "/api/users" ||
+    pathname === "/api/teams" ||
+    pathname === "/api/scrims" ||
+    pathname === "/api/violations" ||
+    pathname === "/api/announcements" ||
+    pathname.endsWith("/members") ||
+    pathname.endsWith("/matches") ||
+    pathname.endsWith("/registrations") ||
+    pathname.endsWith("/scoreboard") ||
+    pathname === "/api/leaderboard/teams" ||
+    pathname === "/api/leaderboard/players" ||
+    pathname === "/api/dashboard/upcoming-scrims" ||
+    pathname === "/api/dashboard/recent-violations";
+
+  if (!isListEndpoint) return value;
+
+  const record = value as Record<string, unknown>;
+  const wrappedArray = record["data"] ?? record["items"] ?? record["results"];
+  return Array.isArray(wrappedArray) ? wrappedArray : value;
+}
+
 function mergeHeaders(...sources: Array<HeadersInit | undefined>): Headers {
   const headers = new Headers();
 
@@ -304,7 +342,10 @@ async function parseSuccessBody(
 
   switch (effectiveType) {
     case "json":
-      return parseJsonBody(response, requestInfo);
+      return maybeNormalizeListPayload(
+        await parseJsonBody(response, requestInfo),
+        requestInfo,
+      );
 
     case "text": {
       const text = await response.text();

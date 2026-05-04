@@ -4,6 +4,11 @@
     "composite": true,
     "outDir": "dist",
     "rootDir": "src",
+    "paths": {
+      "@workspace/api-zod": ["../../lib/api-zod/src/index.ts"],
+      "@workspace/db": ["../../lib/db/src/index.ts"],
+      "@workspace/db/schema": ["../../lib/db/src/schema/index.ts"]
+    },
     "types": ["node"]
   },
   "include": ["src"],

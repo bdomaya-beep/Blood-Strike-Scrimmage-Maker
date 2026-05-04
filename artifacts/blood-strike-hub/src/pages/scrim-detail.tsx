@@ -9,7 +9,11 @@ import {
   useListTeams,
   useGetTeamMembers,
   getGetScrimQueryKey,
-  getGetScrimRegistrationsQueryKey
+  getGetScrimRegistrationsQueryKey,
+  getGetScrimMatchesQueryKey,
+  getGetScrimScoreboardQueryKey,
+  getListTeamsQueryKey,
+  getGetTeamMembersQueryKey
 } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -59,10 +63,10 @@ export default function ScrimDetail() {
 
   const { data: user } = useGetCurrentUser();
   const { data: scrim, isLoading: scrimLoading } = useGetScrim(scrimId, { query: { enabled: hasValidScrimId, queryKey: getGetScrimQueryKey(scrimId) } });
-  const { data: matches } = useGetScrimMatches(scrimId, { query: { enabled: hasValidScrimId } });
+  const { data: matches } = useGetScrimMatches(scrimId, { query: { enabled: hasValidScrimId, queryKey: getGetScrimMatchesQueryKey(scrimId) } });
   const { data: registrations, refetch: refetchRegistrations } = useGetScrimRegistrations(scrimId, { query: { enabled: hasValidScrimId, queryKey: getGetScrimRegistrationsQueryKey(scrimId) } });
-  const { data: scoreboard } = useGetScrimScoreboard(scrimId, { query: { enabled: hasValidScrimId } });
-  const { data: allTeams } = useListTeams({ query: { enabled: user?.role === 'captain' } });
+  const { data: scoreboard } = useGetScrimScoreboard(scrimId, { query: { enabled: hasValidScrimId, queryKey: getGetScrimScoreboardQueryKey(scrimId) } });
+  const { data: allTeams } = useListTeams({ query: { enabled: user?.role === 'captain', queryKey: getListTeamsQueryKey() } });
   
   const registerTeam = useRegisterTeamToScrim();
 
@@ -71,7 +75,7 @@ export default function ScrimDetail() {
   const isRegistered = captainTeam ? registrations?.some(r => r.teamId === captainTeam.id) : false;
 
   const { data: teamMembers } = useGetTeamMembers(captainTeam?.id ?? 0, {
-    query: { enabled: !!captainTeam?.id }
+    query: { enabled: !!captainTeam?.id, queryKey: getGetTeamMembersQueryKey(captainTeam?.id ?? 0) }
   });
 
   const activeMembers = teamMembers?.filter(m => m.status === 'accepted') ?? [];

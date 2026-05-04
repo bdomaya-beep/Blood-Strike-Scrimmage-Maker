@@ -6,9 +6,9 @@ Full-stack competitive esports management platform for Blood Strike battle royal
 
 ## Stack
 
-- **Monorepo tool**: pnpm workspaces
+- **Monorepo tool**: npm workspaces
 - **Node.js version**: 24
-- **Package manager**: pnpm
+- **Package manager**: npm
 - **TypeScript version**: 5.9
 - **Frontend**: React + Vite + Tailwind CSS v4 (dark crimson/neon theme)
 - **Routing**: Wouter
@@ -27,11 +27,11 @@ Full-stack competitive esports management platform for Blood Strike battle royal
 
 ## Key Commands
 
-- `pnpm run typecheck` — full typecheck across all packages
-- `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- `pnpm --filter @workspace/api-server run dev` — run API server locally
+- `npm run typecheck` — full typecheck across all packages
+- `npm run build` — typecheck + build all packages
+- `npm -w @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from OpenAPI spec
+- `npm -w @workspace/db run push` — push DB schema changes (dev only)
+- `npm -w @workspace/api-server run dev` — run API server locally
 
 ## Architecture
 
@@ -62,4 +62,4 @@ Pre-seeded accounts (password: `password` for all):
 - `ShadowStrike` (captain, leads Shadow Force)
 - `GhostRifle`, `IronViper`, `BloodHound` (players)
 
-See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details.
+See the workspace `package.json` for workspace structure and commands.
