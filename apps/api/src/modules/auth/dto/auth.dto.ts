@@ -10,7 +10,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 export class RegisterDto {
   @ApiProperty() @IsEmail() email!: string;
   @ApiProperty() @IsString() @MinLength(3) @MaxLength(24) username!: string;
-  @ApiProperty() @IsString() displayName!: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() displayName?: string;
   @ApiProperty() @IsString() @MinLength(8) password!: string;
   @ApiPropertyOptional() @IsOptional() @IsString() region?: string;
 }

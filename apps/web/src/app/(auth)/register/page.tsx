@@ -19,7 +19,7 @@ export default function RegisterPage() {
     e.preventDefault();
     setError('');
     try {
-      await register(form);
+      await register({ ...form, displayName: form.username });
       router.push('/events');
     } catch (err: any) {
       setError(err?.response?.data?.message ?? 'Registration failed');

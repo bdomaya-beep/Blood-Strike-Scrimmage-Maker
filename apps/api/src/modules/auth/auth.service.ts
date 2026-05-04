@@ -30,7 +30,7 @@ export class AuthService {
       data: {
         email: dto.email,
         username: dto.username,
-        displayName: dto.displayName,
+        displayName: dto.displayName ?? dto.username,
         passwordHash,
         region: dto.region,
       },
