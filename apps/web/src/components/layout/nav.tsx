@@ -1,9 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { Bell, Menu, X } from 'lucide-react';
-import { useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { Bell, Menu, X, LogOut, Settings } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth-store';
 import { useNotificationStore } from '@/stores/notification-store';
@@ -18,9 +18,32 @@ const NAV_LINKS = [
 
 export function SiteNav() {
   const pathname = usePathname();
-  const { user, isAuthenticated } = useAuthStore();
+  const router = useRouter();
+  const { user, isAuthenticated, logout } = useAuthStore();
   const { unreadCount } = useNotificationStore();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const profileRef = useRef<HTMLDivElement>(null);
+
+  // Close profile dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
+        setProfileOpen(false);
+      }
+    };
+
+    if (profileOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [profileOpen]);
+
+  const handleLogout = async () => {
+    await logout();
+    setProfileOpen(false);
+    router.push('/login');
+  };
 
   return (
     <header className="sticky top-0 z-40 bg-surface-900/90 backdrop-blur-lg border-b border-white/10">
@@ -61,11 +84,45 @@ export function SiteNav() {
                   </span>
                 )}
               </Link>
-              <Link href="/profile">
-                <div className="w-8 h-8 rounded-lg bg-neon-red/20 border border-neon-red/30 flex items-center justify-center text-neon-red font-orbitron font-black text-xs">
+
+              {/* Profile Dropdown */}
+              <div ref={profileRef} className="relative">
+                <button
+                  onClick={() => setProfileOpen(!profileOpen)}
+                  className="w-8 h-8 rounded-lg bg-neon-red/20 border border-neon-red/30 flex items-center justify-center text-neon-red font-orbitron font-black text-xs hover:border-neon-red/50 transition-colors"
+                >
                   {user?.username?.[0]?.toUpperCase() ?? '?'}
-                </div>
-              </Link>
+                </button>
+
+                {profileOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-surface-800 border border-white/20 rounded-lg shadow-lg overflow-hidden z-50">
+                    {/* User Info */}
+                    <div className="p-4 border-b border-white/10 bg-surface-900/50">
+                      <p className="text-white font-semibold text-sm">{user?.displayName}</p>
+                      <p className="text-white/60 text-xs">@{user?.username}</p>
+                    </div>
+
+                    {/* Menu Items */}
+                    <div className="py-2">
+                      <Link
+                        href="/profile"
+                        onClick={() => setProfileOpen(false)}
+                        className="flex items-center gap-3 px-4 py-2 text-white/60 hover:text-white hover:bg-white/5 transition-colors text-sm"
+                      >
+                        <Settings className="w-4 h-4" />
+                        Settings
+                      </Link>
+                      <button
+                        onClick={handleLogout}
+                        className="w-full flex items-center gap-3 px-4 py-2 text-white/60 hover:text-neon-red hover:bg-neon-red/10 transition-colors text-sm"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        Logout
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </>
           ) : (
             <>
@@ -106,6 +163,15 @@ export function SiteNav() {
               {link.label}
             </Link>
           ))}
+          {isAuthenticated && (
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-white/60 hover:text-neon-red hover:bg-neon-red/10 transition-colors text-sm rounded-lg"
+            >
+              <LogOut className="w-4 h-4" />
+              Logout
+            </button>
+          )}
         </nav>
       )}
     </header>

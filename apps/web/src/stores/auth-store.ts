@@ -41,6 +41,8 @@ export const useAuthStore = create<AuthState>()(
           const { data } = await apiClient.post('/auth/login', { email, password });
           localStorage.setItem('access_token', data.accessToken);
           localStorage.setItem('refresh_token', data.refreshToken);
+          // Also set cookie for middleware
+          document.cookie = `access_token=${data.accessToken}; path=/; max-age=900`;
           set({ user: data.user, isAuthenticated: true });
         } finally {
           set({ isLoading: false });
@@ -57,6 +59,8 @@ export const useAuthStore = create<AuthState>()(
           const { data } = await apiClient.post('/auth/register', registerPayload);
           localStorage.setItem('access_token', data.accessToken);
           localStorage.setItem('refresh_token', data.refreshToken);
+          // Also set cookie for middleware
+          document.cookie = `access_token=${data.accessToken}; path=/; max-age=900`;
           set({ user: data.user, isAuthenticated: true });
         } finally {
           set({ isLoading: false });
@@ -66,6 +70,8 @@ export const useAuthStore = create<AuthState>()(
       logout: async () => {
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
+        // Clear cookie
+        document.cookie = 'access_token=; path=/; max-age=0';
         set({ user: null, isAuthenticated: false });
       },
 
