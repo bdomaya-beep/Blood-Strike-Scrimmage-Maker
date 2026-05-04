@@ -1,6 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "installCommand": "npm install",
+  "installCommand": "npm install --workspaces --include-workspace-root",
   "buildCommand": "npm run build:vercel",
   "outputDirectory": "artifacts/blood-strike-hub/dist/public",
   "framework": null,
