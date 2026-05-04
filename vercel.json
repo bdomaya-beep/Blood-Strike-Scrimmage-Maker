@@ -4,11 +4,6 @@
   "buildCommand": "npm run build:vercel",
   "outputDirectory": "artifacts/blood-strike-hub/dist/public",
   "framework": null,
-  "functions": {
-    "api/**/*.ts": {
-      "maxDuration": 10
-    }
-  },
   "rewrites": [
     {
       "source": "/api/(.*)",
