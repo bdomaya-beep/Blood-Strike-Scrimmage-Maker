@@ -2,7 +2,6 @@ import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import { GlassCard } from '@/components/ui/glass-card';
 import { GlowBadge } from '@/components/ui/glow-badge';
-import { NeonButton } from '@/components/ui/neon-button';
 import Link from 'next/link';
 
 export const metadata: Metadata = { title: 'Events' };
@@ -30,9 +29,12 @@ export default async function EventsPage() {
           <h1 className="font-orbitron font-black text-3xl text-white mb-1">Events</h1>
           <p className="text-white/40 text-sm">{meta.total} events available</p>
         </div>
-        <NeonButton size="sm" asChild>
-          <Link href="/events/create">+ Create Event</Link>
-        </NeonButton>
+        <Link
+          href="/events/create"
+          className="relative inline-flex items-center justify-center rounded-lg bg-gradient-to-r from-neon-red to-neon-orange px-3 py-1.5 font-orbitron text-xs font-bold uppercase tracking-wider text-white transition-opacity hover:opacity-90"
+        >
+          + Create Event
+        </Link>
       </div>
 
       {/* Filters */}

@@ -7,11 +7,12 @@ import { HudStatChip } from '@/components/ui/hud-stat-chip';
 import { Swords, Users, Calendar, Globe } from 'lucide-react';
 
 interface Props {
-  params: { eventId: string };
+  params: Promise<{ eventId: string }>;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  return { title: `Event ${params.eventId}` };
+  const { eventId } = await params;
+  return { title: `Event ${eventId}` };
 }
 
 async function getEvent(eventId: string) {
@@ -26,7 +27,8 @@ async function getEvent(eventId: string) {
 }
 
 export default async function EventDetailPage({ params }: Props) {
-  const event = await getEvent(params.eventId);
+  const { eventId } = await params;
+  const event = await getEvent(eventId);
   if (!event) notFound();
 
   return (
@@ -56,7 +58,7 @@ export default async function EventDetailPage({ params }: Props) {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Standings — span 2 cols */}
         <div className="lg:col-span-2">
-          <LiveStandingsTable eventId={params.eventId} />
+          <LiveStandingsTable eventId={eventId} />
         </div>
 
         {/* Sidebar */}

@@ -7,8 +7,7 @@ let socket: Socket | null = null;
 export function getSocket(): Socket {
   if (!socket || !socket.connected) {
     const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
-    socket = io(WS_URL, {
-      namespace: '/ws',
+    socket = io(`${WS_URL}/ws`, {
       auth: { token },
       transports: ['websocket'],
       reconnectionAttempts: 5,
