@@ -3,6 +3,11 @@ import { Reflector } from '@nestjs/core';
 import { ROLES_KEY } from '../decorators/roles.decorator';
 import { AuthenticatedUser } from '../decorators/current-user.decorator';
 
+const ROLE_ALIASES: Record<string, string[]> = {
+  admin: ['super_admin'],
+  moderator: ['tournament_organizer', 'clan_moderator'],
+};
+
 @Injectable()
 export class RolesGuard implements CanActivate {
   constructor(private reflector: Reflector) {}
@@ -16,7 +21,12 @@ export class RolesGuard implements CanActivate {
     if (!required || required.length === 0) return true;
 
     const req = context.switchToHttp().getRequest<{ user: AuthenticatedUser }>();
-    const hasRole = required.some((r) => req.user?.roles?.includes(r));
+    const userRoles = req.user?.roles ?? [];
+    const hasRole = required.some((requiredRole) => {
+      if (userRoles.includes(requiredRole)) return true;
+      const aliases = ROLE_ALIASES[requiredRole] ?? [];
+      return aliases.some((alias) => userRoles.includes(alias));
+    });
 
     if (!hasRole) {
       throw new ForbiddenException('Insufficient permissions');

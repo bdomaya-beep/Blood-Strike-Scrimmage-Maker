@@ -5,17 +5,20 @@ import {
   Patch,
   Body,
   Param,
+  Query,
   UseGuards,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
-import { RegisterDto, LoginDto, OtpRequestDto, OtpVerifyDto, RefreshTokenDto } from './dto/auth.dto';
+import { RegisterDto, LoginDto, OtpRequestDto, OtpVerifyDto, RefreshTokenDto, RequestRoleDto, ReviewRoleRequestDto } from './dto/auth.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser, AuthenticatedUser } from '../../common/decorators/current-user.decorator';
 import { IS_PUBLIC_KEY } from '../../common/guards/jwt-auth.guard';
 import { SetMetadata } from '@nestjs/common';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
 
 const Public = () => SetMetadata(IS_PUBLIC_KEY, true);
 
@@ -85,5 +88,55 @@ export class AuthController {
   @HttpCode(HttpStatus.NO_CONTENT)
   logout() {
     // TODO: revoke refresh token in sessions table
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @Post('roles/request')
+  @HttpCode(HttpStatus.CREATED)
+  requestRole(@CurrentUser() user: AuthenticatedUser, @Body() dto: RequestRoleDto) {
+    return this.auth.requestRole(user.id, dto.roleCode);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @Post('roles/bootstrap-super-admin')
+  @HttpCode(HttpStatus.OK)
+  bootstrapSuperAdmin(@CurrentUser() user: AuthenticatedUser) {
+    return this.auth.bootstrapSuperAdmin(user.id);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiBearerAuth()
+  @Get('admin/role-requests')
+  @Roles('super_admin')
+  listRoleRequests(@Query('status') status = 'open') {
+    return this.auth.listRoleRequests(status);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiBearerAuth()
+  @Post('admin/role-requests/:requestId/review')
+  @Roles('super_admin')
+  @HttpCode(HttpStatus.OK)
+  reviewRoleRequest(
+    @Param('requestId') requestId: string,
+    @Body() dto: ReviewRoleRequestDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.auth.reviewRoleRequest(requestId, dto.approve, user.id);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiBearerAuth()
+  @Post('admin/users/:userId/roles/:roleCode')
+  @Roles('super_admin')
+  @HttpCode(HttpStatus.OK)
+  grantRoleDirect(
+    @Param('userId') userId: string,
+    @Param('roleCode') roleCode: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.auth.grantRole(userId, roleCode, user.id);
   }
 }

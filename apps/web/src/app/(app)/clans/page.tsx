@@ -21,6 +21,7 @@ interface Clan {
 interface CreateClanForm {
   name: string;
   tag: string;
+  region: string;
   description: string;
 }
 
@@ -29,7 +30,7 @@ export default function ClansPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [formData, setFormData] = useState<CreateClanForm>({ name: '', tag: '', description: '' });
+  const [formData, setFormData] = useState<CreateClanForm>({ name: '', tag: '', region: '', description: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -57,7 +58,7 @@ export default function ClansPage() {
     try {
       setIsSubmitting(true);
       await apiClient.post('/clans', formData);
-      setFormData({ name: '', tag: '', description: '' });
+      setFormData({ name: '', tag: '', region: '', description: '' });
       setShowCreateForm(false);
       await fetchClans();
     } catch (err) {
@@ -110,6 +111,17 @@ export default function ClansPage() {
                     value={formData.tag}
                     onChange={(e) => setFormData({ ...formData, tag: e.target.value.toUpperCase() })}
                     className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/30 focus:outline-none focus:border-neon-red/50 uppercase"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-white/70 mb-2">Region</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. SEA"
+                    value={formData.region}
+                    onChange={(e) => setFormData({ ...formData, region: e.target.value })}
+                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/30 focus:outline-none focus:border-neon-red/50"
                     required
                   />
                 </div>

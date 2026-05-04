@@ -119,6 +119,11 @@ export class ClansService {
   }
 
   private async assertCaptainOrAdmin(clanId: string, userId: string) {
+    const isSuperAdmin = await this.prisma.userRole.findFirst({
+      where: { userId, role: { code: 'super_admin' } },
+    });
+    if (isSuperAdmin) return;
+
     const membership = await this.prisma.clanMember.findFirst({
       where: { clanId, userId, status: 'active', clanRole: { in: ['CAPTAIN', 'MODERATOR'] } },
     });

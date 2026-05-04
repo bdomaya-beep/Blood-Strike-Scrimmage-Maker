@@ -4,6 +4,8 @@ import {
   MinLength,
   MaxLength,
   IsOptional,
+  IsBoolean,
+  IsIn,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
@@ -35,4 +37,17 @@ export class RefreshTokenDto {
 export class SocialAuthDto {
   @ApiProperty() @IsString() code!: string;
   @ApiPropertyOptional() @IsOptional() @IsString() redirectUri?: string;
+}
+
+export class RequestRoleDto {
+  @ApiProperty({ enum: ['tournament_organizer', 'clan_leader', 'clan_moderator', 'spectator'] })
+  @IsString()
+  @IsIn(['tournament_organizer', 'clan_leader', 'clan_moderator', 'spectator'])
+  roleCode!: string;
+}
+
+export class ReviewRoleRequestDto {
+  @ApiProperty()
+  @IsBoolean()
+  approve!: boolean;
 }
