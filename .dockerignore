@@ -8,7 +8,6 @@ apps/web
 apps/web/.next
 artifacts
 lib
-scripts
 *.log
 dist
 .turbo
