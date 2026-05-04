@@ -1,0 +1,1331 @@
+openapi: 3.1.0
+info:
+  title: Blood Strike Scrim Hub API
+  version: 1.0.0
+  description: |
+    REST + WebSocket API for the Blood Strike Scrim Hub esports platform.
+    All REST endpoints are prefixed with `/api/v1`.
+    Authentication uses Bearer JWT tokens obtained from the auth endpoints.
+  contact:
+    name: BSSH Team
+
+servers:
+  - url: http://localhost:3001/api/v1
+    description: Local development
+  - url: https://api.bloodstrikehub.gg/api/v1
+    description: Production
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    # ── Common ──────────────────────────────────────────────
+    PaginationMeta:
+      type: object
+      properties:
+        page:   { type: integer }
+        limit:  { type: integer }
+        total:  { type: integer }
+        pages:  { type: integer }
+
+    Error:
+      type: object
+      required: [statusCode, message]
+      properties:
+        statusCode: { type: integer }
+        message:    { type: string }
+        error:      { type: string }
+
+    # ── Auth ────────────────────────────────────────────────
+    RegisterBody:
+      type: object
+      required: [email, username, displayName, password]
+      properties:
+        email:       { type: string, format: email }
+        username:    { type: string, minLength: 3, maxLength: 24 }
+        displayName: { type: string }
+        password:    { type: string, minLength: 8 }
+        region:      { type: string }
+
+    LoginBody:
+      type: object
+      required: [email, password]
+      properties:
+        email:    { type: string, format: email }
+        password: { type: string }
+
+    OtpRequestBody:
+      type: object
+      required: [channel]
+      properties:
+        channel: { type: string, enum: [email, sms] }
+
+    OtpVerifyBody:
+      type: object
+      required: [otp]
+      properties:
+        otp: { type: string, minLength: 6, maxLength: 6 }
+
+    TokenPair:
+      type: object
+      properties:
+        accessToken:  { type: string }
+        refreshToken: { type: string }
+        expiresIn:    { type: integer }
+
+    AuthUser:
+      type: object
+      properties:
+        id:          { type: string, format: uuid }
+        email:       { type: string }
+        username:    { type: string }
+        displayName: { type: string }
+        avatarUrl:   { type: string, nullable: true }
+        region:      { type: string, nullable: true }
+        isVerified:  { type: boolean }
+        roles:       { type: array, items: { type: string } }
+
+    # ── Users ───────────────────────────────────────────────
+    UpdateProfileBody:
+      type: object
+      properties:
+        displayName: { type: string }
+        region:      { type: string }
+        avatarUrl:   { type: string }
+
+    PlayerStats:
+      type: object
+      properties:
+        playerId:         { type: string, format: uuid }
+        username:         { type: string }
+        totalKills:       { type: integer }
+        avgKills:         { type: number }
+        kdRatio:          { type: number }
+        mvpCount:         { type: integer }
+        wins:             { type: integer }
+        tournamentHistory: { type: array, items: { type: object } }
+
+    # ── Clans ───────────────────────────────────────────────
+    CreateClanBody:
+      type: object
+      required: [name, tag, region]
+      properties:
+        name:        { type: string }
+        tag:         { type: string, maxLength: 6 }
+        description: { type: string }
+        region:      { type: string }
+        logoUrl:     { type: string }
+        bannerUrl:   { type: string }
+
+    UpdateClanBody:
+      type: object
+      properties:
+        name:        { type: string }
+        description: { type: string }
+        logoUrl:     { type: string }
+        bannerUrl:   { type: string }
+
+    Clan:
+      type: object
+      properties:
+        id:          { type: string, format: uuid }
+        name:        { type: string }
+        tag:         { type: string }
+        description: { type: string, nullable: true }
+        logoUrl:     { type: string, nullable: true }
+        bannerUrl:   { type: string, nullable: true }
+        region:      { type: string }
+        rankingTier: { type: string }
+        totalPoints: { type: integer }
+        wins:        { type: integer }
+        losses:      { type: integer }
+        status:      { type: string }
+        createdAt:   { type: string, format: date-time }
+
+    ClanMember:
+      type: object
+      properties:
+        id:       { type: string, format: uuid }
+        clanId:   { type: string, format: uuid }
+        userId:   { type: string, format: uuid }
+        clanRole: { type: string, enum: [CAPTAIN, MODERATOR, MEMBER] }
+        joinedAt: { type: string, format: date-time }
+
+    InviteMemberBody:
+      type: object
+      required: [userId]
+      properties:
+        userId:  { type: string, format: uuid }
+        message: { type: string }
+
+    # ── Events ──────────────────────────────────────────────
+    CreateEventBody:
+      type: object
+      required: [type, title, region, startsAt, maxTeams]
+      properties:
+        type:        { type: string, enum: [SCRIM, TOURNAMENT] }
+        title:       { type: string }
+        description: { type: string }
+        region:      { type: string }
+        startsAt:    { type: string, format: date-time }
+        endsAt:      { type: string, format: date-time, nullable: true }
+        maxTeams:    { type: integer, minimum: 2 }
+        visibility:  { type: string, enum: [public, private, invitational] }
+
+    CreateRulesetBody:
+      type: object
+      required: [payload]
+      properties:
+        payload:
+          type: object
+          properties:
+            killPointBase:   { type: integer }
+            headshotBonus:   { type: integer }
+            teamWipeBonus:   { type: integer }
+            mvpBonus:        { type: integer }
+            placementPoints: { type: object, additionalProperties: { type: integer } }
+            penaltyRules:    { type: object, additionalProperties: { type: integer } }
+            gameMode:        { type: string }
+            allowedWeapons:  { type: array, items: { type: string } }
+
+    Event:
+      type: object
+      properties:
+        id:          { type: string, format: uuid }
+        organizerId: { type: string, format: uuid }
+        type:        { type: string }
+        title:       { type: string }
+        description: { type: string, nullable: true }
+        region:      { type: string }
+        startsAt:    { type: string, format: date-time }
+        endsAt:      { type: string, format: date-time, nullable: true }
+        maxTeams:    { type: integer }
+        visibility:  { type: string }
+        status:      { type: string }
+        createdAt:   { type: string, format: date-time }
+
+    # ── Matches ─────────────────────────────────────────────
+    SubmitResultBody:
+      type: object
+      required: [summary]
+      properties:
+        summary:
+          type: object
+          required: [placements, killLogs]
+          properties:
+            placements:
+              type: array
+              items:
+                type: object
+                properties:
+                  clanId:    { type: string, format: uuid }
+                  placement: { type: integer }
+            killLogs:
+              type: array
+              items:
+                type: object
+                properties:
+                  playerId:   { type: string, format: uuid }
+                  clanId:     { type: string, format: uuid }
+                  killType:   { type: string }
+                  weapon:     { type: string }
+                  isHeadshot: { type: boolean }
+
+    UploadEvidenceBody:
+      type: object
+      required: [type, fileUrl, fileHash]
+      properties:
+        type:     { type: string, enum: [screenshot, video, log] }
+        fileUrl:  { type: string }
+        fileHash: { type: string }
+
+    OpenDisputeBody:
+      type: object
+      required: [reason]
+      properties:
+        reason: { type: string, minLength: 10 }
+
+    Match:
+      type: object
+      properties:
+        id:                    { type: string, format: uuid }
+        eventId:               { type: string, format: uuid }
+        status:                { type: string }
+        startsAt:              { type: string, format: date-time }
+        endedAt:               { type: string, format: date-time, nullable: true }
+        lockedAt:              { type: string, format: date-time, nullable: true }
+        rulesetVersion:        { type: integer }
+
+    # ── Standings ───────────────────────────────────────────
+    StandingsEntry:
+      type: object
+      properties:
+        rank:          { type: integer }
+        clanId:        { type: string, format: uuid }
+        clanName:      { type: string }
+        clanTag:       { type: string }
+        totalPoints:   { type: integer }
+        totalKills:    { type: integer }
+        matchesPlayed: { type: integer }
+        wins:          { type: integer }
+
+    Standings:
+      type: object
+      properties:
+        eventId:  { type: string, format: uuid }
+        version:  { type: integer }
+        entries:  { type: array, items: { $ref: '#/components/schemas/StandingsEntry' } }
+        updatedAt: { type: string, format: date-time }
+
+    # ── Moderation ──────────────────────────────────────────
+    CreatePenaltyBody:
+      type: object
+      required: [eventId, type, pointsDelta, reason]
+      properties:
+        eventId:     { type: string, format: uuid }
+        matchId:     { type: string, format: uuid, nullable: true }
+        clanId:      { type: string, format: uuid, nullable: true }
+        playerId:    { type: string, format: uuid, nullable: true }
+        type:        { type: string, enum: [NO_SHOW, LATE_ENTRY, TOXIC_BEHAVIOR, BANNED_WEAPON, EXPLOIT, ILLEGAL_SUBSTITUTION, DISCONNECT_ABUSE, OTHER] }
+        pointsDelta: { type: integer }
+        reason:      { type: string }
+
+    CreateBanBody:
+      type: object
+      required: [targetType, targetId, reason]
+      properties:
+        targetType: { type: string, enum: [user, clan] }
+        targetId:   { type: string, format: uuid }
+        reason:     { type: string }
+        endsAt:     { type: string, format: date-time, nullable: true }
+
+    ResolveDisputeBody:
+      type: object
+      required: [status, resolutionNotes]
+      properties:
+        status:          { type: string, enum: [RESOLVED, DISMISSED] }
+        resolutionNotes: { type: string }
+
+    # ── Streams ─────────────────────────────────────────────
+    CreateStreamSessionBody:
+      type: object
+      required: [eventId, channelId, embedUrl]
+      properties:
+        eventId:   { type: string, format: uuid }
+        channelId: { type: string, format: uuid }
+        embedUrl:  { type: string }
+        startsAt:  { type: string, format: date-time }
+
+    # ── Notifications ───────────────────────────────────────
+    Notification:
+      type: object
+      properties:
+        id:          { type: string, format: uuid }
+        type:        { type: string }
+        title:       { type: string }
+        body:        { type: string }
+        payloadJson: { type: object, nullable: true }
+        isRead:      { type: boolean }
+        createdAt:   { type: string, format: date-time }
+
+security:
+  - bearerAuth: []
+
+paths:
+  # ═══════════════════════════════════════════════════════════
+  # AUTH
+  # ═══════════════════════════════════════════════════════════
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Register new account
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RegisterBody' }
+      responses:
+        '201':
+          description: Account created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TokenPair' }
+        '409':
+          description: Email or username already taken
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Login with email and password
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginBody' }
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TokenPair' }
+        '401':
+          description: Invalid credentials
+
+  /auth/social/{provider}:
+    post:
+      tags: [Auth]
+      summary: Authenticate via social provider (google, discord, facebook)
+      security: []
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema: { type: string, enum: [google, discord, facebook] }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code:        { type: string }
+                redirectUri: { type: string }
+      responses:
+        '200':
+          description: Social login successful
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TokenPair' }
+
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Refresh access token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken: { type: string }
+      responses:
+        '200':
+          description: New token pair
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TokenPair' }
+
+  /auth/otp/request:
+    post:
+      tags: [Auth]
+      summary: Request OTP verification code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/OtpRequestBody' }
+      responses:
+        '200':
+          description: OTP sent
+
+  /auth/otp/verify:
+    post:
+      tags: [Auth]
+      summary: Verify OTP code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/OtpVerifyBody' }
+      responses:
+        '200':
+          description: Account verified
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Revoke refresh token / logout
+      responses:
+        '204':
+          description: Logged out
+
+  # ═══════════════════════════════════════════════════════════
+  # USERS
+  # ═══════════════════════════════════════════════════════════
+  /users/me:
+    get:
+      tags: [Users]
+      summary: Get current user profile
+      responses:
+        '200':
+          description: Current user
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthUser' }
+    patch:
+      tags: [Users]
+      summary: Update current user profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateProfileBody' }
+      responses:
+        '200':
+          description: Updated user
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthUser' }
+
+  /players/{playerId}/stats:
+    get:
+      tags: [Users]
+      summary: Get player statistics
+      security: []
+      parameters:
+        - name: playerId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: season
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Player stats
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PlayerStats' }
+
+  # ═══════════════════════════════════════════════════════════
+  # CLANS
+  # ═══════════════════════════════════════════════════════════
+  /clans:
+    get:
+      tags: [Clans]
+      summary: List clans
+      security: []
+      parameters:
+        - name: region
+          in: query
+          schema: { type: string }
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 20 }
+      responses:
+        '200':
+          description: Paginated clan list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { type: array, items: { $ref: '#/components/schemas/Clan' } }
+                  meta: { $ref: '#/components/schemas/PaginationMeta' }
+    post:
+      tags: [Clans]
+      summary: Create clan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateClanBody' }
+      responses:
+        '201':
+          description: Clan created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Clan' }
+
+  /clans/{clanId}:
+    get:
+      tags: [Clans]
+      summary: Get clan by ID
+      security: []
+      parameters:
+        - name: clanId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Clan detail
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Clan' }
+    patch:
+      tags: [Clans]
+      summary: Update clan (captain/admin only)
+      parameters:
+        - name: clanId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateClanBody' }
+      responses:
+        '200':
+          description: Updated clan
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Clan' }
+    delete:
+      tags: [Clans]
+      summary: Disband clan (captain/admin only)
+      parameters:
+        - name: clanId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204':
+          description: Clan disbanded
+
+  /clans/{clanId}/members:
+    get:
+      tags: [Clans]
+      summary: List clan members
+      security: []
+      parameters:
+        - name: clanId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Clan members
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/ClanMember' }
+
+  /clans/{clanId}/invites:
+    post:
+      tags: [Clans]
+      summary: Invite a player to clan
+      parameters:
+        - name: clanId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/InviteMemberBody' }
+      responses:
+        '201':
+          description: Invite sent
+
+  /clans/invites/{inviteId}/accept:
+    post:
+      tags: [Clans]
+      summary: Accept a clan invite
+      parameters:
+        - name: inviteId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Invite accepted
+
+  /clans/invites/{inviteId}/decline:
+    post:
+      tags: [Clans]
+      summary: Decline a clan invite
+      parameters:
+        - name: inviteId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Invite declined
+
+  /clans/{clanId}/transfer-requests:
+    post:
+      tags: [Clans]
+      summary: Submit player transfer request
+      parameters:
+        - name: clanId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [toClanId]
+              properties:
+                toClanId: { type: string, format: uuid }
+                reason:   { type: string }
+      responses:
+        '201':
+          description: Transfer request submitted
+
+  /clans/{clanId}/recruitment:
+    get:
+      tags: [Clans]
+      summary: Get clan recruitment posts
+      security: []
+      parameters:
+        - name: clanId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Recruitment posts
+    post:
+      tags: [Clans]
+      summary: Create recruitment post
+      parameters:
+        - name: clanId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, body]
+              properties:
+                title:        { type: string }
+                body:         { type: string }
+                requiredRank: { type: string }
+                slots:        { type: integer }
+      responses:
+        '201':
+          description: Recruitment post created
+
+  # ═══════════════════════════════════════════════════════════
+  # EVENTS
+  # ═══════════════════════════════════════════════════════════
+  /events:
+    get:
+      tags: [Events]
+      summary: List events (scrims and tournaments)
+      security: []
+      parameters:
+        - name: type
+          in: query
+          schema: { type: string, enum: [SCRIM, TOURNAMENT] }
+        - name: status
+          in: query
+          schema: { type: string }
+        - name: region
+          in: query
+          schema: { type: string }
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 20 }
+      responses:
+        '200':
+          description: Paginated event list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { type: array, items: { $ref: '#/components/schemas/Event' } }
+                  meta: { $ref: '#/components/schemas/PaginationMeta' }
+    post:
+      tags: [Events]
+      summary: Create event (organizer only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateEventBody' }
+      responses:
+        '201':
+          description: Event created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Event' }
+
+  /events/{eventId}:
+    get:
+      tags: [Events]
+      summary: Get event detail
+      security: []
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Event detail
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Event' }
+    patch:
+      tags: [Events]
+      summary: Update event
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateEventBody' }
+      responses:
+        '200':
+          description: Updated event
+
+  /events/{eventId}/rulesets:
+    post:
+      tags: [Events]
+      summary: Publish new ruleset version
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateRulesetBody' }
+      responses:
+        '201':
+          description: Ruleset published
+
+  /events/{eventId}/register:
+    post:
+      tags: [Events]
+      summary: Register clan for event
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [clanId]
+              properties:
+                clanId: { type: string, format: uuid }
+      responses:
+        '201':
+          description: Registration confirmed
+
+  /events/{eventId}/standings:
+    get:
+      tags: [Events]
+      summary: Get live standings for event
+      security: []
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Current standings
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Standings' }
+
+  /events/{eventId}/matches:
+    get:
+      tags: [Events]
+      summary: List all matches for event
+      security: []
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: status
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Match list
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Match' }
+
+  /events/{eventId}/bracket:
+    get:
+      tags: [Events]
+      summary: Get tournament bracket
+      security: []
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Bracket data
+    post:
+      tags: [Events]
+      summary: Generate bracket (organizer only)
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '201':
+          description: Bracket generated
+
+  # ═══════════════════════════════════════════════════════════
+  # MATCHES
+  # ═══════════════════════════════════════════════════════════
+  /matches/{matchId}:
+    get:
+      tags: [Matches]
+      summary: Get match detail
+      security: []
+      parameters:
+        - name: matchId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Match detail
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Match' }
+
+  /matches/{matchId}/ready-check/start:
+    post:
+      tags: [Matches]
+      summary: Start ready check (organizer only)
+      parameters:
+        - name: matchId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '201':
+          description: Ready check started
+
+  /matches/{matchId}/ready-check/confirm:
+    post:
+      tags: [Matches]
+      summary: Confirm readiness (clan captain)
+      parameters:
+        - name: matchId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Readiness confirmed
+
+  /matches/{matchId}/results:
+    post:
+      tags: [Matches]
+      summary: Submit match result
+      parameters:
+        - name: matchId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SubmitResultBody' }
+      responses:
+        '201':
+          description: Result submitted (provisional)
+
+  /matches/{matchId}/evidence:
+    post:
+      tags: [Matches]
+      summary: Upload result evidence (screenshot/video)
+      parameters:
+        - name: matchId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UploadEvidenceBody' }
+      responses:
+        '201':
+          description: Evidence uploaded
+
+  /matches/{matchId}/disputes:
+    post:
+      tags: [Matches]
+      summary: Open a match dispute
+      parameters:
+        - name: matchId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/OpenDisputeBody' }
+      responses:
+        '201':
+          description: Dispute opened
+
+  /matches/{matchId}/disputes/{disputeId}/resolve:
+    post:
+      tags: [Matches]
+      summary: Resolve dispute (moderator only)
+      parameters:
+        - name: matchId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: disputeId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ResolveDisputeBody' }
+      responses:
+        '200':
+          description: Dispute resolved
+
+  /matches/{matchId}/verify:
+    post:
+      tags: [Matches]
+      summary: Verify and approve result (moderator only)
+      parameters:
+        - name: matchId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Match verified
+
+  /matches/{matchId}/lock:
+    post:
+      tags: [Matches]
+      summary: Lock finalized match (organizer/admin)
+      parameters:
+        - name: matchId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Match locked
+
+  # ═══════════════════════════════════════════════════════════
+  # MODERATION
+  # ═══════════════════════════════════════════════════════════
+  /penalties:
+    post:
+      tags: [Moderation]
+      summary: Apply penalty (organizer/admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreatePenaltyBody' }
+      responses:
+        '201':
+          description: Penalty applied
+
+  /violations:
+    get:
+      tags: [Moderation]
+      summary: List violations (admin)
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string }
+        - name: severity
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Violation list
+    post:
+      tags: [Moderation]
+      summary: Create violation report (admin)
+      responses:
+        '201':
+          description: Violation created
+
+  /bans:
+    post:
+      tags: [Moderation]
+      summary: Issue ban (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateBanBody' }
+      responses:
+        '201':
+          description: Ban issued
+
+  /bans/{banId}/lift:
+    post:
+      tags: [Moderation]
+      summary: Lift ban (admin)
+      parameters:
+        - name: banId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Ban lifted
+
+  /admin/audit-logs:
+    get:
+      tags: [Admin]
+      summary: Query audit logs (super admin)
+      parameters:
+        - name: actorUserId
+          in: query
+          schema: { type: string }
+        - name: entityType
+          in: query
+          schema: { type: string }
+        - name: from
+          in: query
+          schema: { type: string, format: date-time }
+        - name: to
+          in: query
+          schema: { type: string, format: date-time }
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+      responses:
+        '200':
+          description: Audit log entries
+
+  /admin/suspicious-flags:
+    get:
+      tags: [Admin]
+      summary: List anti-cheat flags (admin)
+      responses:
+        '200':
+          description: Flag list
+
+  /admin/users:
+    get:
+      tags: [Admin]
+      summary: List users (admin)
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string }
+        - name: q
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: User list
+
+  /admin/users/{userId}/status:
+    patch:
+      tags: [Admin]
+      summary: Change user status (admin)
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { type: string, enum: [ACTIVE, SUSPENDED, BANNED] }
+                reason: { type: string }
+      responses:
+        '200':
+          description: Status updated
+
+  # ═══════════════════════════════════════════════════════════
+  # STREAMS
+  # ═══════════════════════════════════════════════════════════
+  /streams/sessions:
+    post:
+      tags: [Streams]
+      summary: Create stream session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateStreamSessionBody' }
+      responses:
+        '201':
+          description: Session created
+
+  /streams/sessions/{sessionId}:
+    patch:
+      tags: [Streams]
+      summary: Update stream session status
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { type: string, enum: [LIVE, ENDED] }
+      responses:
+        '200':
+          description: Session updated
+
+  /streams/live:
+    get:
+      tags: [Streams]
+      summary: Get currently live sessions
+      security: []
+      responses:
+        '200':
+          description: Live sessions
+
+  # ═══════════════════════════════════════════════════════════
+  # NOTIFICATIONS
+  # ═══════════════════════════════════════════════════════════
+  /notifications:
+    get:
+      tags: [Notifications]
+      summary: Get user notifications
+      parameters:
+        - name: unreadOnly
+          in: query
+          schema: { type: boolean }
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+      responses:
+        '200':
+          description: Notifications
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { type: array, items: { $ref: '#/components/schemas/Notification' } }
+                  meta: { $ref: '#/components/schemas/PaginationMeta' }
+
+  /notifications/read-all:
+    post:
+      tags: [Notifications]
+      summary: Mark all notifications as read
+      responses:
+        '204':
+          description: All marked as read
+
+  /notifications/{notificationId}/read:
+    post:
+      tags: [Notifications]
+      summary: Mark single notification as read
+      parameters:
+        - name: notificationId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Marked as read
+
+  /webhooks/discord/test:
+    post:
+      tags: [Notifications]
+      summary: Test Discord webhook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [webhookUrl]
+              properties:
+                webhookUrl: { type: string }
+      responses:
+        '200':
+          description: Webhook test sent
+
+  # ═══════════════════════════════════════════════════════════
+  # STORAGE (signed URLs)
+  # ═══════════════════════════════════════════════════════════
+  /uploads/sign:
+    post:
+      tags: [Uploads]
+      summary: Get pre-signed upload URL
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [fileName, contentType, context]
+              properties:
+                fileName:    { type: string }
+                contentType: { type: string }
+                context:     { type: string, enum: [avatar, clan-logo, clan-banner, evidence, highlight] }
+      responses:
+        '200':
+          description: Pre-signed upload URL and final public URL
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  uploadUrl: { type: string }
+                  publicUrl: { type: string }
+                  expiresIn: { type: integer }

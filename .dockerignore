@@ -1,0 +1,16 @@
+node_modules
+.git
+.github
+*.md
+.env
+.env.*
+apps/web
+apps/web/.next
+artifacts
+lib
+scripts
+*.log
+dist
+.turbo
+coverage
+.vscode

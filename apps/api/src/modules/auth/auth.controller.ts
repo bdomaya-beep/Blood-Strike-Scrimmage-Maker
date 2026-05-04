@@ -1,0 +1,89 @@
+import {
+  Controller,
+  Post,
+  Get,
+  Patch,
+  Body,
+  Param,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import { AuthService } from './auth.service';
+import { RegisterDto, LoginDto, OtpRequestDto, OtpVerifyDto, RefreshTokenDto } from './dto/auth.dto';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { CurrentUser, AuthenticatedUser } from '../../common/decorators/current-user.decorator';
+import { IS_PUBLIC_KEY } from '../../common/guards/jwt-auth.guard';
+import { SetMetadata } from '@nestjs/common';
+
+const Public = () => SetMetadata(IS_PUBLIC_KEY, true);
+
+@ApiTags('Auth')
+@Controller('auth')
+export class AuthController {
+  constructor(private auth: AuthService) {}
+
+  @Public()
+  @Post('register')
+  register(@Body() dto: RegisterDto) {
+    return this.auth.register(dto);
+  }
+
+  @Public()
+  @Post('login')
+  @HttpCode(HttpStatus.OK)
+  login(@Body() dto: LoginDto) {
+    return this.auth.login(dto);
+  }
+
+  @Public()
+  @Post('refresh')
+  @HttpCode(HttpStatus.OK)
+  refresh(@Body() dto: RefreshTokenDto) {
+    return this.auth.refreshTokens(dto.refreshToken);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @Get('me')
+  getMe(@CurrentUser() user: AuthenticatedUser) {
+    return this.auth.getMe(user.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @Patch('me')
+  updateProfile(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() body: { displayName?: string; region?: string; avatarUrl?: string },
+  ) {
+    return this.auth.updateProfile(user.id, body);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @Post('otp/request')
+  @HttpCode(HttpStatus.OK)
+  requestOtp(@CurrentUser() user: AuthenticatedUser, @Body() dto: OtpRequestDto) {
+    // TODO: implement OTP generation and delivery
+    return { message: 'OTP sent to ' + dto.channel };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @Post('otp/verify')
+  @HttpCode(HttpStatus.OK)
+  verifyOtp(@CurrentUser() user: AuthenticatedUser, @Body() dto: OtpVerifyDto) {
+    // TODO: verify OTP hash and mark user as verified
+    return { message: 'Account verified' };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @Post('logout')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  logout() {
+    // TODO: revoke refresh token in sessions table
+  }
+}

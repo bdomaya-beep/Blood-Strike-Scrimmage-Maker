@@ -1,0 +1,27 @@
+{
+  "name": "blood-strike-scrim-hub",
+  "version": "1.0.0",
+  "private": true,
+  "packageManager": "npm@11.6.2",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "typecheck": "turbo run typecheck",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "db:generate": "npm -w @bssh/db run generate",
+    "db:migrate": "npm -w @bssh/db run migrate",
+    "db:push": "npm -w @bssh/db run push",
+    "db:studio": "npm -w @bssh/db run studio"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.3",
+    "typescript": "^5.9.2",
+    "prettier": "^3.8.1",
+    "@types/node": "^22.0.0"
+  }
+}

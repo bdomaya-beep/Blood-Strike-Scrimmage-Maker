@@ -1,0 +1,1077 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  BANNED
+  DELETED
+}
+
+enum MatchStatus {
+  SCHEDULED
+  READY_CHECK
+  LIVE
+  RESULT_PENDING
+  VERIFIED
+  DISPUTED
+  LOCKED
+  CANCELED
+}
+
+enum VerificationState {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum DisputeStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED
+  DISMISSED
+}
+
+enum EventStatus {
+  DRAFT
+  REGISTRATION
+  ACTIVE
+  COMPLETED
+  CANCELED
+}
+
+enum ScrimType {
+  OPEN
+  INVITATIONAL
+  RANKED
+  LEAGUE
+  TOURNAMENT
+  PRACTICE_WAR
+}
+
+enum TournamentFormat {
+  SINGLE_ELIMINATION
+  DOUBLE_ELIMINATION
+  ROUND_ROBIN
+  SWISS
+  LEAGUE
+}
+
+enum BanStatus {
+  ACTIVE
+  EXPIRED
+  LIFTED
+}
+
+enum StreamStatus {
+  SCHEDULED
+  LIVE
+  ENDED
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+  DISCORD
+  PUSH
+}
+
+enum DeliveryStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+enum PenaltyType {
+  NO_SHOW
+  LATE_ENTRY
+  TOXIC_BEHAVIOR
+  BANNED_WEAPON
+  EXPLOIT
+  ILLEGAL_SUBSTITUTION
+  DISCONNECT_ABUSE
+  OTHER
+}
+
+enum ViolationSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum ClanMemberRole {
+  CAPTAIN
+  MODERATOR
+  MEMBER
+}
+
+enum ScopeType {
+  GLOBAL
+  CLAN
+  EVENT
+}
+
+enum ReadyState {
+  PENDING
+  READY
+  NOT_READY
+}
+
+// ============================================================
+// IDENTITY
+// ============================================================
+
+model User {
+  id           String     @id @default(uuid())
+  email        String     @unique
+  username     String     @unique
+  passwordHash String?
+  displayName  String
+  avatarUrl    String?
+  region       String?
+  isVerified   Boolean    @default(false)
+  status       UserStatus @default(ACTIVE)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  deletedAt    DateTime?
+
+  identities           UserIdentity[]
+  sessions             Session[]
+  otps                 UserOtp[]
+  userRoles            UserRole[]
+  captainOf            Clan[]                @relation("ClanCaptain")
+  clanMemberships      ClanMember[]
+  sentInvites          ClanInvite[]          @relation("InviteSender")
+  receivedInvites      ClanInvite[]          @relation("InviteReceiver")
+  transferRequests     ClanTransferRequest[] @relation("TransferUser")
+  decidedTransfers     ClanTransferRequest[] @relation("TransferDecider")
+  organizedEvents      Event[]
+  publishedRulesets    EventRuleset[]
+  submittedResults     MatchResult[]         @relation("ResultSubmitter")
+  verifiedResults      MatchResult[]         @relation("ResultVerifier")
+  uploadedEvidence     MatchEvidence[]
+  openedDisputes       MatchDispute[]        @relation("DisputeOpener")
+  resolvedDisputes     MatchDispute[]        @relation("DisputeResolver")
+  issuedPenalties      Penalty[]             @relation("PenaltyIssuer")
+  playerPenalties      Penalty[]             @relation("PlayerPenalty")
+  issuedBans           Ban[]                 @relation("BanIssuer")
+  notifications        Notification[]
+  auditLogs            AuditLog[]
+  reports              Report[]              @relation("ReportReporter")
+  resolvedReports      Report[]              @relation("ReportResolver")
+  grantedRoles         UserRole[]            @relation("RoleGranter")
+  livestreamChannels   LivestreamChannel[]
+  highlights           Highlight[]
+  comments             Comment[]
+  reactions            Reaction[]
+  follows              Follow[]
+  playerMatchStats     PlayerMatchStat[]
+  billingAccounts      BillingAccount[]      @relation("AccountOwner")
+
+  @@map("users")
+}
+
+model UserIdentity {
+  id                    String   @id @default(uuid())
+  userId                String
+  provider              String
+  providerUserId        String
+  providerEmail         String?
+  accessTokenEncrypted  String?
+  refreshTokenEncrypted String?
+  createdAt             DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerUserId])
+  @@map("user_identities")
+}
+
+model Session {
+  id               String    @id @default(uuid())
+  userId           String
+  refreshTokenHash String
+  ip               String?
+  userAgent        String?
+  expiresAt        DateTime
+  revokedAt        DateTime?
+  createdAt        DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model UserOtp {
+  id           String    @id @default(uuid())
+  userId       String
+  channel      String
+  otpHash      String
+  expiresAt    DateTime
+  consumedAt   DateTime?
+  attemptCount Int       @default(0)
+  createdAt    DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_otps")
+}
+
+model Role {
+  id   String @id @default(uuid())
+  code String @unique
+  name String
+
+  rolePermissions RolePermission[]
+  userRoles       UserRole[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id          String  @id @default(uuid())
+  code        String  @unique
+  description String?
+
+  rolePermissions RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model UserRole {
+  id          String    @id @default(uuid())
+  userId      String
+  roleId      String
+  scopeType   ScopeType @default(GLOBAL)
+  scopeId     String?
+  grantedById String?
+  createdAt   DateTime  @default(now())
+
+  user      User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      Role  @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  grantedBy User? @relation("RoleGranter", fields: [grantedById], references: [id])
+
+  @@map("user_roles")
+}
+
+// ============================================================
+// CLAN
+// ============================================================
+
+model Clan {
+  id            String   @id @default(uuid())
+  name          String
+  tag           String   @unique
+  description   String?
+  logoUrl       String?
+  bannerUrl     String?
+  region        String
+  captainUserId String
+  rankingTier   String   @default("Bronze")
+  totalPoints   Int      @default(0)
+  wins          Int      @default(0)
+  losses        Int      @default(0)
+  status        String   @default("active")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  captain          User                  @relation("ClanCaptain", fields: [captainUserId], references: [id])
+  members          ClanMember[]
+  invites          ClanInvite[]
+  recruitmentPosts ClanRecruitmentPost[]
+  transfersFrom    ClanTransferRequest[] @relation("TransferFromClan")
+  transfersTo      ClanTransferRequest[] @relation("TransferToClan")
+  matchParticipants MatchParticipant[]
+  teamMatchStats   TeamMatchStat[]
+  penalties        Penalty[]             @relation("ClanPenalty")
+
+  @@map("clans")
+}
+
+model ClanMember {
+  id       String         @id @default(uuid())
+  clanId   String
+  userId   String
+  clanRole ClanMemberRole @default(MEMBER)
+  joinedAt DateTime       @default(now())
+  leftAt   DateTime?
+  status   String         @default("active")
+
+  clan Clan @relation(fields: [clanId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([clanId, userId])
+  @@map("clan_members")
+}
+
+model ClanInvite {
+  id            String    @id @default(uuid())
+  clanId        String
+  invitedUserId String
+  invitedById   String
+  message       String?
+  status        String    @default("pending")
+  expiresAt     DateTime
+  respondedAt   DateTime?
+  createdAt     DateTime  @default(now())
+
+  clan        Clan @relation(fields: [clanId], references: [id], onDelete: Cascade)
+  invitedUser User @relation("InviteReceiver", fields: [invitedUserId], references: [id])
+  invitedBy   User @relation("InviteSender", fields: [invitedById], references: [id])
+
+  @@map("clan_invites")
+}
+
+model ClanRecruitmentPost {
+  id           String   @id @default(uuid())
+  clanId       String
+  title        String
+  body         String
+  requiredRank String?
+  slots        Int      @default(1)
+  status       String   @default("open")
+  createdAt    DateTime @default(now())
+
+  clan Clan @relation(fields: [clanId], references: [id], onDelete: Cascade)
+
+  @@map("clan_recruitment_posts")
+}
+
+model ClanTransferRequest {
+  id          String    @id @default(uuid())
+  fromClanId  String
+  toClanId    String
+  userId      String
+  reason      String?
+  status      String    @default("pending")
+  decidedById String?
+  decidedAt   DateTime?
+  createdAt   DateTime  @default(now())
+
+  fromClan  Clan  @relation("TransferFromClan", fields: [fromClanId], references: [id])
+  toClan    Clan  @relation("TransferToClan", fields: [toClanId], references: [id])
+  user      User  @relation("TransferUser", fields: [userId], references: [id])
+  decidedBy User? @relation("TransferDecider", fields: [decidedById], references: [id])
+
+  @@map("clan_transfer_requests")
+}
+
+// ============================================================
+// EVENTS AND COMPETITION
+// ============================================================
+
+model Event {
+  id          String      @id @default(uuid())
+  organizerId String
+  type        String
+  title       String
+  description String?
+  region      String
+  startsAt    DateTime
+  endsAt      DateTime?
+  maxTeams    Int
+  visibility  String      @default("public")
+  status      EventStatus @default(DRAFT)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  organizer          User               @relation(fields: [organizerId], references: [id])
+  rulesets           EventRuleset[]
+  scrim              Scrim?
+  tournament         Tournament?
+  rounds             Round[]
+  matches            Match[]
+  standingsSnapshots StandingsSnapshot[]
+  eventPenalties     Penalty[]          @relation("EventPenalty")
+  violations         Violation[]
+  livestreamSessions LivestreamSession[]
+  highlights         Highlight[]
+  scoringProfiles    ScoringProfile[]
+
+  @@map("events")
+}
+
+model EventRuleset {
+  id          String   @id @default(uuid())
+  eventId     String
+  version     Int
+  payloadJson Json
+  isActive    Boolean  @default(true)
+  publishedBy String
+  createdAt   DateTime @default(now())
+
+  event     Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  publisher User  @relation(fields: [publishedBy], references: [id])
+
+  @@unique([eventId, version])
+  @@map("event_rulesets")
+}
+
+model Scrim {
+  id              String    @id @default(uuid())
+  eventId         String    @unique
+  scrimType       ScrimType
+  gameMode        String
+  roomCount       Int       @default(1)
+  allowStreamMode Boolean   @default(false)
+  status          String    @default("registration")
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@map("scrims")
+}
+
+model Tournament {
+  id          String           @id @default(uuid())
+  eventId     String           @unique
+  format      TournamentFormat
+  seedingType String
+  status      String           @default("registration")
+
+  event  Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  stages TournamentStage[]
+
+  @@map("tournaments")
+}
+
+model TournamentStage {
+  id            String  @id @default(uuid())
+  tournamentId  String
+  parentStageId String?
+  stageType     String
+  orderNo       Int
+  title         String
+
+  parentStage TournamentStage?  @relation("StageSelf", fields: [parentStageId], references: [id])
+  subStages   TournamentStage[] @relation("StageSelf")
+  tourney     Tournament        @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  brackets    Bracket[]
+  matches     Match[]
+
+  @@map("tournament_stages")
+}
+
+model Bracket {
+  id          String    @id @default(uuid())
+  stageId     String
+  bracketType String
+  generatedAt DateTime?
+
+  stage          TournamentStage @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  bracketMatches BracketMatch[]
+
+  @@map("brackets")
+}
+
+model BracketMatch {
+  id          String  @id @default(uuid())
+  bracketId   String
+  roundNo     Int
+  positionNo  Int
+  matchId     String
+  nextMatchId String?
+
+  bracket Bracket @relation(fields: [bracketId], references: [id], onDelete: Cascade)
+  match   Match   @relation("BracketMatchRef", fields: [matchId], references: [id])
+
+  @@map("bracket_matches")
+}
+
+model Round {
+  id       String    @id @default(uuid())
+  eventId  String
+  number   Int
+  startsAt DateTime
+  endsAt   DateTime?
+
+  event   Event   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  matches Match[]
+
+  @@map("rounds")
+}
+
+// ============================================================
+// MATCHES
+// ============================================================
+
+model Match {
+  id                    String      @id @default(uuid())
+  eventId               String
+  roundId               String?
+  stageId               String?
+  rulesetVersion        Int
+  roomCodeEncrypted     String?
+  roomPasswordEncrypted String?
+  status                MatchStatus @default(SCHEDULED)
+  startsAt              DateTime
+  endedAt               DateTime?
+  lockedAt              DateTime?
+  streamSessionId       String?
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+
+  event         Event             @relation(fields: [eventId], references: [id])
+  round         Round?            @relation(fields: [roundId], references: [id])
+  stage         TournamentStage?  @relation(fields: [stageId], references: [id])
+  rooms         MatchRoom[]
+  participants  MatchParticipant[]
+  readyChecks   MatchReadyCheck[]
+  result        MatchResult?
+  evidence      MatchEvidence[]
+  disputes      MatchDispute[]
+  replays       MatchReplay[]
+  bracketMatch  BracketMatch[]    @relation("BracketMatchRef")
+  killLogs      KillLog[]
+  playerStats   PlayerMatchStat[]
+  teamStats     TeamMatchStat[]
+  matchPenalties Penalty[]        @relation("MatchPenalty")
+  violations    Violation[]       @relation("MatchViolation")
+  suspiciousFlags SuspiciousFlag[] @relation("MatchFlag")
+
+  @@map("matches")
+}
+
+model MatchRoom {
+  id                   String    @id @default(uuid())
+  matchId              String
+  roomLabel            String
+  credentialsEncrypted String
+  publishedAt          DateTime?
+
+  match Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  @@map("match_rooms")
+}
+
+model MatchParticipant {
+  id          String     @id @default(uuid())
+  matchId     String
+  clanId      String
+  slotNo      Int
+  seed        Int?
+  readyState  ReadyState @default(PENDING)
+  checkedInAt DateTime?
+
+  match Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  clan  Clan  @relation(fields: [clanId], references: [id])
+
+  @@unique([matchId, clanId])
+  @@map("match_participants")
+}
+
+model MatchReadyCheck {
+  id       String   @id @default(uuid())
+  matchId  String
+  openedAt DateTime @default(now())
+  closesAt DateTime
+  status   String   @default("open")
+
+  match Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  @@map("match_ready_checks")
+}
+
+model MatchResult {
+  id                String            @id @default(uuid())
+  matchId           String            @unique
+  submittedById     String
+  submittedAt       DateTime          @default(now())
+  verificationState VerificationState @default(PENDING)
+  verifiedById      String?
+  verifiedAt        DateTime?
+  summaryJson       Json
+
+  match       Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  submittedBy User  @relation("ResultSubmitter", fields: [submittedById], references: [id])
+  verifiedBy  User? @relation("ResultVerifier", fields: [verifiedById], references: [id])
+
+  @@map("match_results")
+}
+
+model MatchEvidence {
+  id           String   @id @default(uuid())
+  matchId      String
+  uploadedById String
+  type         String
+  fileUrl      String
+  fileHash     String
+  metadataJson Json?
+  createdAt    DateTime @default(now())
+
+  match      Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  uploadedBy User  @relation(fields: [uploadedById], references: [id])
+
+  @@map("match_evidence")
+}
+
+model MatchDispute {
+  id              String        @id @default(uuid())
+  matchId         String
+  openedById      String
+  reason          String
+  status          DisputeStatus @default(OPEN)
+  resolvedById    String?
+  resolvedAt      DateTime?
+  resolutionNotes String?
+  createdAt       DateTime      @default(now())
+
+  match      Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  openedBy   User  @relation("DisputeOpener", fields: [openedById], references: [id])
+  resolvedBy User? @relation("DisputeResolver", fields: [resolvedById], references: [id])
+
+  @@map("match_disputes")
+}
+
+model MatchReplay {
+  id              String   @id @default(uuid())
+  matchId         String
+  replayUrl       String
+  source          String
+  durationSeconds Int?
+  createdAt       DateTime @default(now())
+
+  match Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  @@map("match_replays")
+}
+
+// ============================================================
+// SCORING
+// ============================================================
+
+model ScoringProfile {
+  id            String   @id @default(uuid())
+  eventId       String
+  name          String
+  killPointBase Int
+  headshotBonus Int      @default(0)
+  teamWipeBonus Int      @default(0)
+  mvpBonus      Int      @default(0)
+  createdAt     DateTime @default(now())
+
+  event           Event            @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  placementPoints PlacementPoint[]
+  rules           ScoringRule[]
+
+  @@map("scoring_profiles")
+}
+
+model PlacementPoint {
+  id               String @id @default(uuid())
+  scoringProfileId String
+  placement        Int
+  points           Int
+
+  profile ScoringProfile @relation(fields: [scoringProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([scoringProfileId, placement])
+  @@map("placement_points")
+}
+
+model ScoringRule {
+  id               String @id @default(uuid())
+  scoringProfileId String
+  ruleType         String
+  value            Int
+  payloadJson      Json?
+
+  profile ScoringProfile @relation(fields: [scoringProfileId], references: [id], onDelete: Cascade)
+
+  @@map("scoring_rules")
+}
+
+model KillLog {
+  id             String   @id @default(uuid())
+  matchId        String
+  playerId       String
+  clanId         String
+  victimPlayerId String?
+  killType       String
+  weapon         String?
+  isHeadshot     Boolean  @default(false)
+  occurredAt     DateTime @default(now())
+
+  match Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  @@map("kill_logs")
+}
+
+model PlayerMatchStat {
+  id       String   @id @default(uuid())
+  matchId  String
+  playerId String
+  clanId   String
+  kills    Int      @default(0)
+  deaths   Int      @default(0)
+  assists  Int      @default(0)
+  damage   Int      @default(0)
+  accuracy Decimal? @db.Decimal(5, 2)
+  mvp      Boolean  @default(false)
+
+  match  Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  player User  @relation(fields: [playerId], references: [id])
+
+  @@unique([matchId, playerId])
+  @@map("player_match_stats")
+}
+
+model TeamMatchStat {
+  id            String @id @default(uuid())
+  matchId       String
+  clanId        String
+  placement     Int
+  totalKills    Int    @default(0)
+  penaltyPoints Int    @default(0)
+  totalPoints   Int    @default(0)
+
+  match Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  clan  Clan  @relation(fields: [clanId], references: [id])
+
+  @@unique([matchId, clanId])
+  @@map("team_match_stats")
+}
+
+model StandingsSnapshot {
+  id           String   @id @default(uuid())
+  eventId      String
+  version      Int
+  snapshotJson Json
+  createdAt    DateTime @default(now())
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, version])
+  @@map("standings_snapshots")
+}
+
+// ============================================================
+// INTEGRITY AND MODERATION
+// ============================================================
+
+model Penalty {
+  id         String      @id @default(uuid())
+  eventId    String
+  matchId    String?
+  clanId     String?
+  playerId   String?
+  type       PenaltyType
+  pointsDelta Int
+  reason     String
+  issuedById String
+  issuedAt   DateTime    @default(now())
+
+  event    Event  @relation("EventPenalty", fields: [eventId], references: [id])
+  match    Match? @relation("MatchPenalty", fields: [matchId], references: [id])
+  clan     Clan?  @relation("ClanPenalty", fields: [clanId], references: [id])
+  player   User?  @relation("PlayerPenalty", fields: [playerId], references: [id])
+  issuedBy User   @relation("PenaltyIssuer", fields: [issuedById], references: [id])
+
+  @@map("penalties")
+}
+
+model Violation {
+  id           String            @id @default(uuid())
+  eventId      String
+  matchId      String?
+  targetType   String
+  targetId     String
+  category     String
+  severity     ViolationSeverity
+  status       String            @default("open")
+  evidenceJson Json?
+  createdAt    DateTime          @default(now())
+
+  event Event  @relation(fields: [eventId], references: [id])
+  match Match? @relation("MatchViolation", fields: [matchId], references: [id])
+
+  @@map("violations")
+}
+
+model Ban {
+  id         String    @id @default(uuid())
+  targetType String
+  targetId   String
+  reason     String
+  startsAt   DateTime  @default(now())
+  endsAt     DateTime?
+  issuedById String
+  status     BanStatus @default(ACTIVE)
+
+  issuedBy User @relation("BanIssuer", fields: [issuedById], references: [id])
+
+  @@map("bans")
+}
+
+model SuspiciousFlag {
+  id          String   @id @default(uuid())
+  eventId     String?
+  matchId     String?
+  targetType  String
+  targetId    String
+  signalType  String
+  score       Decimal  @db.Decimal(5, 2)
+  payloadJson Json?
+  status      String   @default("open")
+  createdAt   DateTime @default(now())
+
+  match Match? @relation("MatchFlag", fields: [matchId], references: [id])
+
+  @@map("suspicious_flags")
+}
+
+// ============================================================
+// MEDIA AND ENGAGEMENT
+// ============================================================
+
+model LivestreamChannel {
+  id          String  @id @default(uuid())
+  ownerUserId String
+  provider    String
+  channelId   String
+  title       String
+  region      String?
+  isVerified  Boolean @default(false)
+
+  owner    User               @relation(fields: [ownerUserId], references: [id])
+  sessions LivestreamSession[]
+
+  @@map("livestream_channels")
+}
+
+model LivestreamSession {
+  id        String       @id @default(uuid())
+  eventId   String
+  channelId String
+  embedUrl  String
+  startsAt  DateTime?
+  endedAt   DateTime?
+  status    StreamStatus @default(SCHEDULED)
+
+  event   Event             @relation(fields: [eventId], references: [id])
+  channel LivestreamChannel @relation(fields: [channelId], references: [id])
+
+  @@map("livestream_sessions")
+}
+
+model Highlight {
+  id           String   @id @default(uuid())
+  eventId      String
+  matchId      String?
+  title        String
+  clipUrl      String
+  thumbnailUrl String?
+  createdById  String
+  createdAt    DateTime @default(now())
+
+  event     Event @relation(fields: [eventId], references: [id])
+  createdBy User  @relation(fields: [createdById], references: [id])
+
+  @@map("highlights")
+}
+
+model Comment {
+  id         String    @id @default(uuid())
+  targetType String
+  targetId   String
+  userId     String
+  body       String
+  createdAt  DateTime  @default(now())
+  deletedAt  DateTime?
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("comments")
+}
+
+model Reaction {
+  id         String   @id @default(uuid())
+  targetType String
+  targetId   String
+  userId     String
+  reaction   String
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([targetType, targetId, userId, reaction])
+  @@map("reactions")
+}
+
+model Follow {
+  id         String   @id @default(uuid())
+  userId     String
+  targetType String
+  targetId   String
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, targetType, targetId])
+  @@map("follows")
+}
+
+// ============================================================
+// NOTIFICATIONS
+// ============================================================
+
+model Notification {
+  id          String   @id @default(uuid())
+  userId      String
+  type        String
+  title       String
+  body        String
+  payloadJson Json?
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  user       User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deliveries NotificationDelivery[]
+
+  @@map("notifications")
+}
+
+model NotificationDelivery {
+  id                String              @id @default(uuid())
+  notificationId    String
+  channel           NotificationChannel
+  status            DeliveryStatus      @default(PENDING)
+  providerMessageId String?
+  attempts          Int                 @default(0)
+  lastError         String?
+  sentAt            DateTime?
+
+  notification Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+
+  @@map("notification_deliveries")
+}
+
+model WebhookTarget {
+  id              String   @id @default(uuid())
+  ownerScopeType  String
+  ownerScopeId    String
+  provider        String
+  endpointUrl     String
+  secretEncrypted String
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+
+  @@map("webhook_targets")
+}
+
+// ============================================================
+// AUDIT AND REPORTING
+// ============================================================
+
+model AuditLog {
+  id           String   @id @default(uuid())
+  actorUserId  String?
+  action       String
+  entityType   String
+  entityId     String?
+  oldValueJson Json?
+  newValueJson Json?
+  ip           String?
+  userAgent    String?
+  createdAt    DateTime @default(now())
+
+  actor User? @relation(fields: [actorUserId], references: [id])
+
+  @@map("audit_logs")
+}
+
+model Report {
+  id             String    @id @default(uuid())
+  reporterUserId String
+  targetType     String
+  targetId       String
+  reason         String
+  status         String    @default("open")
+  resolvedById   String?
+  resolvedAt     DateTime?
+  createdAt      DateTime  @default(now())
+
+  reporter   User  @relation("ReportReporter", fields: [reporterUserId], references: [id])
+  resolvedBy User? @relation("ReportResolver", fields: [resolvedById], references: [id])
+
+  @@map("reports")
+}
+
+// ============================================================
+// PLATFORM OPERATIONS
+// ============================================================
+
+model FeatureFlag {
+  id          String  @id @default(uuid())
+  code        String  @unique
+  description String?
+  isEnabled   Boolean @default(false)
+  rolloutJson Json?
+
+  @@map("feature_flags")
+}
+
+model BillingAccount {
+  id                 String   @id @default(uuid())
+  ownerType          String
+  ownerId            String
+  providerCustomerId String
+  status             String
+  createdAt          DateTime @default(now())
+
+  owner         User           @relation("AccountOwner", fields: [ownerId], references: [id])
+  subscriptions Subscription[]
+  invoices      Invoice[]
+
+  @@map("billing_accounts")
+}
+
+model Subscription {
+  id                 String   @id @default(uuid())
+  billingAccountId   String
+  planCode           String
+  status             String
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+  cancelAtPeriodEnd  Boolean  @default(false)
+
+  billingAccount BillingAccount @relation(fields: [billingAccountId], references: [id], onDelete: Cascade)
+
+  @@map("subscriptions")
+}
+
+model Invoice {
+  id                String    @id @default(uuid())
+  billingAccountId  String
+  providerInvoiceId String
+  amountCents       Int
+  currency          String    @db.Char(3)
+  status            String
+  issuedAt          DateTime
+  paidAt            DateTime?
+
+  billingAccount BillingAccount @relation(fields: [billingAccountId], references: [id], onDelete: Cascade)
+
+  @@map("invoices")
+}

@@ -1,0 +1,31 @@
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+
+# Build outputs
+dist
+.next
+*.tsbuildinfo
+
+# Env files — never commit secrets
+.env
+.env.*
+!.env.example
+
+# Turbo cache
+.turbo
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Prisma generated client
+node_modules/.prisma
+
+# Vercel
+.vercel
