@@ -3,6 +3,7 @@ import {
   Post,
   Get,
   Patch,
+  Delete,
   Body,
   Param,
   Query,
@@ -138,5 +139,43 @@ export class AuthController {
     @CurrentUser() user: AuthenticatedUser,
   ) {
     return this.auth.grantRole(userId, roleCode, user.id);
+  }
+
+  // ── Admin: User Management ──────────────────────────────────
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiBearerAuth()
+  @Get('admin/users')
+  @Roles('super_admin')
+  listUsers(
+    @Query('page') page = '1',
+    @Query('limit') limit = '20',
+    @Query('search') search?: string,
+  ) {
+    return this.auth.listUsers(+page, +limit, search);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiBearerAuth()
+  @Post('admin/users')
+  @Roles('super_admin')
+  @HttpCode(HttpStatus.CREATED)
+  createUser(
+    @Body() dto: RegisterDto,
+    @CurrentUser() admin: AuthenticatedUser,
+  ) {
+    return this.auth.adminCreateUser(dto, admin.id);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiBearerAuth()
+  @Patch('admin/users/:userId/status')
+  @Roles('super_admin')
+  setUserStatus(
+    @Param('userId') userId: string,
+    @Body('status') status: string,
+    @CurrentUser() admin: AuthenticatedUser,
+  ) {
+    return this.auth.setUserStatus(userId, status, admin.id);
   }
 }

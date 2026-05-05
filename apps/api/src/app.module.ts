@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { AuthModule } from './modules/auth/auth.module';
+import { AnnouncementsModule } from './modules/announcements/announcements.module';
 import { ClansModule } from './modules/clans/clans.module';
 import { EventsModule } from './modules/events/events.module';
 import { MatchesModule } from './modules/matches/matches.module';
@@ -22,6 +23,7 @@ import { DatabaseModule } from './database/database.module';
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 120 }]),
     DatabaseModule,
     AuthModule,
+    AnnouncementsModule,
     ClansModule,
     EventsModule,
     MatchesModule,

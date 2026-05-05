@@ -236,6 +236,72 @@ export class AuthService {
     };
   }
 
+  async listUsers(page = 1, limit = 20, search?: string) {
+    const where: any = {};
+    if (search) {
+      where.OR = [
+        { username: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
+        { displayName: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+    const [users, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true, email: true, username: true, displayName: true,
+          region: true, status: true, isVerified: true, createdAt: true,
+          userRoles: { include: { role: { select: { code: true, name: true } } } },
+        },
+      }),
+      this.prisma.user.count({ where }),
+    ]);
+    return {
+      data: users.map((u: any) => ({ ...u, roles: u.userRoles.map((ur: any) => ur.role.code) })),
+      meta: { page, limit, total, pages: Math.ceil(total / limit) },
+    };
+  }
+
+  async adminCreateUser(dto: RegisterDto, adminId: string) {
+    const exists = await this.prisma.user.findFirst({
+      where: { OR: [{ email: dto.email }, { username: dto.username }] },
+    });
+    if (exists) throw new ConflictException('Email or username already taken');
+
+    const passwordHash = await bcrypt.hash(dto.password, 12);
+    const user = await this.prisma.user.create({
+      data: {
+        email: dto.email,
+        username: dto.username,
+        displayName: dto.displayName ?? dto.username,
+        passwordHash,
+        region: dto.region,
+      },
+    });
+
+    const playerRole = await this.ensureRoleExists(ROLES.PLAYER);
+    await this.ensureUserHasRole(user.id, playerRole.id, adminId);
+
+    return {
+      message: 'User created',
+      user: { id: user.id, email: user.email, username: user.username },
+    };
+  }
+
+  async setUserStatus(userId: string, status: string, adminId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
+    const updated = await this.prisma.user.update({
+      where: { id: userId },
+      data: { status: status as any },
+      select: { id: true, username: true, status: true },
+    });
+    return { message: `User status set to ${status}`, user: updated };
+  }
+
   private async signTokenPair(userId: string, email: string, username: string, roles: string[]) {
     const payload = { sub: userId, email, username, roles };
 

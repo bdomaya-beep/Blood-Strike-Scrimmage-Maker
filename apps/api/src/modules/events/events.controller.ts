@@ -1,9 +1,11 @@
 import {
-  Controller, Get, Post, Patch, Body, Param, Query, UseGuards, HttpCode, HttpStatus,
+  Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, HttpCode, HttpStatus,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { EventsService, CreateEventDto, CreateRulesetDto } from './events.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser, AuthenticatedUser } from '../../common/decorators/current-user.decorator';
 
 @ApiTags('Events')
@@ -64,5 +66,39 @@ export class EventsController {
   @HttpCode(HttpStatus.CREATED)
   generateBracket(@Param('eventId') eventId: string) {
     return this.events.generateBracket(eventId);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiBearerAuth()
+  @Roles('super_admin', 'organizer')
+  @Patch(':eventId')
+  updateEvent(
+    @Param('eventId') eventId: string,
+    @Body() dto: Partial<CreateEventDto>,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.events.update(eventId, dto, user.id);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiBearerAuth()
+  @Roles('super_admin', 'organizer')
+  @Patch(':eventId/status')
+  @HttpCode(HttpStatus.OK)
+  setStatus(
+    @Param('eventId') eventId: string,
+    @Body('status') status: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.events.setStatus(eventId, status, user.id);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiBearerAuth()
+  @Roles('super_admin')
+  @Delete(':eventId')
+  @HttpCode(HttpStatus.OK)
+  deleteEvent(@Param('eventId') eventId: string) {
+    return this.events.remove(eventId);
   }
 }

@@ -114,4 +114,30 @@ export class EventsService {
     // This is a placeholder that returns the tournament structure
     return { message: 'Bracket generation queued', eventId };
   }
+
+  async update(eventId: string, dto: Partial<CreateEventDto>, requesterId: string) {
+    await this.findById(eventId);
+    return this.prisma.event.update({
+      where: { id: eventId },
+      data: {
+        ...dto,
+        startsAt: dto.startsAt ? new Date(dto.startsAt) : undefined,
+        endsAt: dto.endsAt ? new Date(dto.endsAt) : undefined,
+      },
+    });
+  }
+
+  async setStatus(eventId: string, status: string, requesterId: string) {
+    await this.findById(eventId);
+    return this.prisma.event.update({
+      where: { id: eventId },
+      data: { status: status as any },
+    });
+  }
+
+  async remove(eventId: string) {
+    await this.findById(eventId);
+    await this.prisma.event.delete({ where: { id: eventId } });
+    return { message: 'Event deleted' };
+  }
 }

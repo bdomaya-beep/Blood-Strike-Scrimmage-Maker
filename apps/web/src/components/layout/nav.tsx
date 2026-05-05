@@ -47,7 +47,7 @@ export function SiteNav() {
 
   const navLinks = [
     ...NAV_LINKS,
-    ...((user?.roles ?? []).includes('super_admin') ? [{ href: '/admin/roles', label: 'Admin Roles' }] : []),
+    ...((user?.roles ?? []).includes('super_admin') ? [{ href: '/admin', label: 'Admin Panel' }] : []),
   ];
 
   return (
