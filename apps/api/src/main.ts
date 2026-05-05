@@ -11,12 +11,19 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
 
   const configService = app.get(ConfigService);
-  const port = configService.get<number>('API_PORT', 3001);
+  const port = Number(
+    configService.get<string>('PORT') ?? configService.get<string>('API_PORT') ?? '3001',
+  );
   const rawOrigins = configService.get<string>('WEB_BASE_URL', 'http://localhost:3000');
   const origins = rawOrigins.split(',').map((o) => o.trim()).filter(Boolean);
   const origin = origins.length === 1 ? origins[0] : origins;
 
   app.setGlobalPrefix('api/v1');
+
+  // Railway health probe endpoint.
+  app.getHttpAdapter().get('/api/v1/health', (_req: unknown, res: { status: (code: number) => { json: (body: { status: string; timestamp: string }) => void } }) => {
+    res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+  });
 
   app.useGlobalPipes(
     new ValidationPipe({
